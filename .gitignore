@@ -1,0 +1,4 @@
+# Personal router backup configuration files
+hw_ctree.xml
+*.xml
+!sample.xml

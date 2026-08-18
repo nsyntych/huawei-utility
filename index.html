@@ -2,49 +2,279 @@
 <html lang="en">
 
 <head>
-	<title>Huawei password utility</title>
+	<title>Huawei Password & Configuration Utility</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 	<link href="css/style.css" rel="stylesheet">
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Client-side tool to decrypt Huawei router backup XML configurations (hw_ctree.xml), recover Nova_admin factory passwords, Wi-Fi keys, and hash passwords.">
 	<script src="js/constants.js"></script> 
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/enc-hex.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/he/1.2.0/he.min.js" integrity="sha512-PEsccDx9jqX6Dh4wZDCnWMaIO3gAaU0j46W//sSqQhUQxky6/eHZyeB3NrXD2xsyugAKd4KPiDANkcuoEa2JuA==" crossorigin="anonymous"></script>
-
 </head>
 
 <body>
 	<noscript>
 		<h1>Huawei password utility</h1>
-		<h2>This page performs all computations on the browser and thus required javascript to be enabled.</h2>
+		<h2>This page performs all computations in your browser and requires JavaScript to be enabled.</h2>
 	</noscript>
-	<header class="header-list">
-		<ul>
-			<li><a href="#home" id="homelink">Home</a></li>
-			<li><a href="#passgen" id="passgenlink">Password generator</a></li>
-			<li><a href="#cipher" id="cipherlink">Cipher/Decipher</a></li>
-		</ul>
-	</header>
-	<main>
-		<div id="home">
-			<h1 class="content">About</h1>
-			<div class="divider"></div>
-			<div class="content">
-				<p>
-					This is a simple web page by <a href="https://blog.fayaru.me">Fayaru</a> with a couple of utility functions for Huawei routers. 
-					Currently it supports hashing passwords with several pass modes aswell as encrypting "password" strings in the configuration file.
-				</p>
-				<p>
-					If you wish to know more about this page you can read my writeup <a href="https://blog.fayaru.me/posts/huawei_router_config/">here</a> or check out the GitHub <a href="https://github.com/andreluis034/huawei-utility-page"> repository</a>. 
-					Any changes or improvements to the page are welcome.
-				</p>
+
+	<header class="header-container">
+		<div class="brand">
+			<div class="brand-icon">
+				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+					<rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+					<line x1="6" y1="6" x2="6.01" y2="6"></line>
+					<line x1="6" y1="18" x2="6.01" y2="18"></line>
+				</svg>
+			</div>
+			<div class="brand-text">
+				<span class="brand-title">Huawei Utility</span>
+				<span class="brand-badge">Client-side &amp; Private</span>
 			</div>
 		</div>
+		<nav class="header-list">
+			<ul>
+				<li><a href="#xmlparser" id="xmlparserlink" class="active-page">XML Decryptor</a></li>
+				<li><a href="#passgen" id="passgenlink">Password Generator</a></li>
+				<li><a href="#cipher" id="cipherlink">Cipher / Decipher</a></li>
+				<li><a href="#home" id="homelink">About</a></li>
+			</ul>
+		</nav>
+	</header>
+
+	<main>
+		<!-- XML Parser & Decryptor Section -->
+		<div id="xmlparser">
+			<div class="section-header">
+				<div class="title-with-badge">
+					<h1>Huawei XML Config Decryptor</h1>
+					<span class="pulse-badge">Instant In-Browser Decryption</span>
+				</div>
+				<p class="subtitle">
+					Upload your router backup configuration file (e.g. <code>hw_ctree.xml</code>) to extract and decode all stored credentials, including the <strong>Nova_admin factory password</strong>, Wi-Fi pre-shared keys, user accounts, and system secrets.
+				</p>
+			</div>
+
+			<div class="divider"></div>
+
+			<!-- Upload Dropzone -->
+			<div class="upload-section">
+				<div class="dropzone" id="dropZone">
+					<input type="file" id="xmlFileInput" accept=".xml,.txt,.cfg" style="display: none;">
+					<div class="dropzone-icon">
+						<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+							<polyline points="17 8 12 3 7 8"></polyline>
+							<line x1="12" y1="3" x2="12" y2="15"></line>
+						</svg>
+					</div>
+					<div class="dropzone-text">
+						<h3>Drag &amp; Drop your <code>hw_ctree.xml</code> here</h3>
+						<p>Supports any Huawei router configuration XML backup</p>
+					</div>
+					<div class="dropzone-actions">
+						<button type="button" class="btn btn-primary" id="btnBrowseFile">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+							Browse XML File
+						</button>
+						<button type="button" class="btn btn-secondary" id="btnLoadSample">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+							Load Sample <code>hw_ctree.xml</code>
+						</button>
+						<button type="button" class="btn btn-outline" id="btnTogglePaste">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+							Paste XML Text
+						</button>
+					</div>
+				</div>
+
+				<!-- Collapsible Paste XML Box -->
+				<div class="paste-box" id="pasteBox" style="display: none;">
+					<label for="pasteTextarea" class="input-description">Paste raw XML configuration text below:</label>
+					<textarea id="pasteTextarea" class="user-input code-textarea" rows="6" placeholder="<UserInterface>&#10;  <X_HW_WebUserInfoInstance ... Password=&quot;$2...$&quot; FactoryPassword=&quot;$2...$&quot;/>&#10;..."></textarea>
+					<div class="paste-actions">
+						<button type="button" class="btn btn-primary" id="btnParsePasted">Parse &amp; Decrypt Pasted XML</button>
+						<button type="button" class="btn btn-outline" id="btnCancelPaste">Cancel</button>
+					</div>
+				</div>
+			</div>
+
+			<!-- Results Container -->
+			<div id="resultsContainer" style="display: none;">
+				<!-- File Info & Actions Bar -->
+				<div class="results-toolbar">
+					<div class="file-summary">
+						<div class="file-summary-badge">
+							<span class="status-indicator"></span>
+							<span id="summaryFileName">hw_ctree.xml</span>
+						</div>
+						<div class="file-summary-meta">
+							<span id="summaryFileSize">202 KB</span> &bull; 
+							<span id="summaryDecryptedCount" class="highlight-count">0 credentials decrypted</span>
+						</div>
+					</div>
+					<div class="export-actions">
+						<button type="button" class="btn btn-sm btn-outline" id="btnCopyAll">
+							<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+							Copy All Passwords
+						</button>
+						<button type="button" class="btn btn-sm btn-outline" id="btnExportJson">
+							<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+							Export JSON
+						</button>
+						<button type="button" class="btn btn-sm btn-primary" id="btnDownloadDecryptedXml">
+							<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+							Download Decrypted XML
+						</button>
+					</div>
+				</div>
+
+				<!-- Quick Highlight Cards -->
+				<div class="highlights-grid" id="highlightsGrid">
+					<!-- Admin & Web Users Card (Includes Nova_admin Factory Password) -->
+					<div class="highlight-card admin-card">
+						<div class="highlight-card-header">
+							<div class="card-title-group">
+								<span class="card-icon">👑</span>
+								<h3>Web / Admin Accounts</h3>
+							</div>
+							<span class="badge badge-success">High Priority</span>
+						</div>
+						<div class="highlight-card-body" id="highlightWebUsers">
+							<!-- Dynamic web users cards -->
+						</div>
+					</div>
+
+					<!-- Wi-Fi Networks Card -->
+					<div class="highlight-card wifi-card">
+						<div class="highlight-card-header">
+							<div class="card-title-group">
+								<span class="card-icon">📶</span>
+								<h3>Wi-Fi Networks (WLAN)</h3>
+							</div>
+							<span class="badge badge-info">Wireless</span>
+						</div>
+						<div class="highlight-card-body" id="highlightWifi">
+							<!-- Dynamic wifi cards -->
+						</div>
+					</div>
+
+					<!-- CLI & Telnet Access -->
+					<div class="highlight-card cli-card">
+						<div class="highlight-card-header">
+							<div class="card-title-group">
+								<span class="card-icon">💻</span>
+								<h3>CLI / Telnet Accounts</h3>
+							</div>
+							<span class="badge badge-purple">Shell</span>
+						</div>
+						<div class="highlight-card-body" id="highlightCli">
+							<!-- Dynamic CLI cards -->
+						</div>
+					</div>
+
+					<!-- System & Management -->
+					<div class="highlight-card system-card">
+						<div class="highlight-card-header">
+							<div class="card-title-group">
+								<span class="card-icon">⚙️</span>
+								<h3>System &amp; CWMP</h3>
+							</div>
+							<span class="badge badge-warning">System</span>
+						</div>
+						<div class="highlight-card-body" id="highlightSystem">
+							<!-- Dynamic System cards -->
+						</div>
+					</div>
+				</div>
+
+				<!-- Search & Filter Controls -->
+				<div class="table-controls-container">
+					<div class="search-box">
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+						<input type="text" id="credentialSearchInput" class="user-input search-input" placeholder="Search passwords, Nova_admin, factory, SSID, username, tokens...">
+						<button type="button" id="btnClearSearch" class="btn-clear" style="display: none;">&times;</button>
+					</div>
+					<div class="filter-pills" id="categoryFilterPills">
+						<button type="button" class="pill-btn active" data-category="ALL">All (<span id="countAll">0</span>)</button>
+						<button type="button" class="pill-btn" data-category="WEB">Web / Admin (<span id="countWeb">0</span>)</button>
+						<button type="button" class="pill-btn" data-category="WIFI">Wi-Fi (<span id="countWifi">0</span>)</button>
+						<button type="button" class="pill-btn" data-category="CLI">CLI (<span id="countCli">0</span>)</button>
+						<button type="button" class="pill-btn" data-category="SYSTEM">System &amp; SSL (<span id="countSystem">0</span>)</button>
+						<button type="button" class="pill-btn" data-category="TOKEN">Tokens (<span id="countTokens">0</span>)</button>
+					</div>
+				</div>
+
+				<!-- All Credentials Table -->
+				<div class="table-wrapper">
+					<table class="credentials-table" id="credentialsTable">
+						<thead>
+							<tr>
+								<th style="width: 14%;">Category</th>
+								<th style="width: 24%;">Identifier / Field</th>
+								<th style="width: 32%;">Decrypted Plaintext</th>
+								<th style="width: 20%;">Ciphertext Preview</th>
+								<th style="width: 10%;">Action</th>
+							</tr>
+						</thead>
+						<tbody id="credentialsTableBody">
+							<!-- Dynamic table rows -->
+						</tbody>
+					</table>
+					<div id="noResultsMessage" class="no-results" style="display: none;">
+						<p>No credentials matching the current filter or search criteria.</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- About Section -->
+		<div id="home" style="display: none;">
+			<div class="section-header">
+				<h1 class="content">About Huawei Utility</h1>
+			</div>
+			<div class="divider"></div>
+			<div class="content text-content">
+				<p>
+					This is a browser-based utility suite for Huawei routers and CPE devices, forked and expanded from the original project created by <strong>André Brandão (<a href="https://blog.fayaru.me" target="_blank" rel="noreferrer">Fayaru</a> / <a href="https://github.com/andreluis034" target="_blank" rel="noreferrer">@andreluis034</a>)</strong>.
+				</p>
+				<p>
+					All computations, AES-256-CBC decryption, and PBKDF2/MD5/SHA256 password generation execute directly in your browser client. No files, passwords, or router data are ever sent over the network.
+				</p>
+				<div class="features-list">
+					<div class="feature-item">
+						<strong>XML Config Decryptor</strong>: Upload backup configurations (<code>hw_ctree.xml</code>) to decrypt all hidden credentials, including factory passwords (e.g. <code>Nova_admin</code>), Wi-Fi PSK keys, and CLI user passwords.
+					</div>
+					<div class="feature-item">
+						<strong>Password Generator</strong>: Compute hashes matching Huawei router firmware modes (MD5, SHA256-MD5, PBKDF2-SHA256 with 5000 iterations).
+					</div>
+					<div class="feature-item">
+						<strong>Cipher / Decipher</strong>: Manually cipher or decipher individual strings formatted with Huawei's custom base-93/AES-CBC encoding (<code>$2...$</code>).
+					</div>
+				</div>
+				<div class="credits-box" style="margin-top: 1.5rem; padding: 1rem 1.2rem; background: var(--bg-card); border-left: 4px solid var(--accent-blue); border-radius: var(--radius-sm);">
+					<strong>Original Author &amp; Research:</strong> André Brandão (Fayaru)<br>
+					&bull; <strong>Technical Writeup:</strong> <a href="https://blog.fayaru.me/posts/huawei_router_config/" target="_blank" rel="noreferrer">Huawei Router Configuration &amp; Encryption Analysis by Fayaru</a><br>
+					&bull; <strong>Original GitHub Repository:</strong> <a href="https://github.com/andreluis034/huawei-utility-page" target="_blank" rel="noreferrer">andreluis034/huawei-utility-page</a>
+				</div>
+			</div>
+		</div>
+
+		<!-- Password Generator Section -->
 		<div id="passgen" style="display: none;">
-			<h1 class="content">Password generator</h1>
+			<div class="section-header">
+				<h1 class="content">Password Generator</h1>
+			</div>
 			<div class="divider"></div>
 			<div class="content">
 				<div class="input-description">
 					Password to hash:
-					<input id="PasswordField" class="user-input" placeholder="password" type="text" oninput="OnPasswordChange()" value>
+					<input id="PasswordField" class="user-input" placeholder="password" type="text" oninput="OnPasswordChange()" value="">
 				</div>
 				<div class="input-description">
 					EncryptMode:
@@ -58,11 +288,11 @@
 					Salt:
 					<div style="display: flex">
 						<div style="flex-grow: 1;">
-							<input id="SaltField" class="user-input" placeholder="salt" type="text" oninput="OnPasswordChange()" value>
+							<input id="SaltField" class="user-input" placeholder="salt" type="text" oninput="OnPasswordChange()" value="">
 						</div>
 						<div class="user-input-checkbox" style="width: 6.8em;">
 							Randomize:
-							<input type="checkbox"  id="SaltRandomizeField" onclick="OnRandomizeFieldChange()"checked>
+							<input type="checkbox" id="SaltRandomizeField" onclick="OnRandomizeFieldChange()" checked>
 						</div>
 					</div>
 				</div>
@@ -70,27 +300,28 @@
 					Result:
 					<div style="display: flex">
 						<div style="flex-grow: 1;">
-							<input id="ResultField" class="user-input no-input" placeholder="result" type="text" value disabled>
+							<input id="ResultField" class="user-input no-input" placeholder="result" type="text" value="" disabled>
 						</div>
-						<div class="user-input-checkbox"  style="width: 5.1em;" >
+						<div class="user-input-checkbox" style="width: 5.1em;">
 							Encrypt:
-							<input type="checkbox" id="EncryptResultField" onclick="OnEncryptResultClick()"checked>
+							<input type="checkbox" id="EncryptResultField" onclick="OnEncryptResultClick()" checked>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
-		<div id="cipher" style="display: none;">
-			<div class=>
 
+		<!-- Cipher/Decipher Section -->
+		<div id="cipher" style="display: none;">
+			<div class="section-header">
+				<h1 class="content">Cipher / Decipher</h1>
 			</div>
-			<h1 class="content">Cipher Decipher</h1>
 			<div class="divider"></div>
 			<div class="content">
-				<p class="input-description"> In this page you can cipher and decipher strings with the same method as Huawei uses in their configuration</p>
+				<p class="input-description">Cipher and decipher arbitrary strings formatted with Huawei's custom base-93/AES-CBC encoding (<code>$2...$</code>).</p>
 				<div class="input-description">
 					Input:
-					<input id="CipherInputField" class="user-input" placeholder="input" type="text" oninput="OnCipherInputChange()" value>
+					<input id="CipherInputField" class="user-input" placeholder="e.g. $2...$" type="text" oninput="OnCipherInputChange()" value="">
 				</div>
 				<div class="input-description">
 					Function:
@@ -101,11 +332,15 @@
 				</div>
 				<div class="input-description">
 					Result:
-					<input id="CipherResultField" class="user-input no-input" placeholder="result" type="text" value disabled>
+					<input id="CipherResultField" class="user-input no-input" placeholder="result" type="text" value="" disabled>
 				</div>
 			</div>
 		</div>
 	</main>
-	<script src="js/index.js"></script> 
 
+	<!-- Toast Notification Container -->
+	<div id="toastNotification" class="toast"></div>
+
+	<script src="js/index.js"></script> 
+</body>
 </html>
