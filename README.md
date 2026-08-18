@@ -2,6 +2,8 @@
 
 A browser-based client-side utility suite for Huawei routers and CPE devices. All computations and decryptions run 100% locally in your browser.
 
+**Live Website:** [https://nsyntych.github.io/huawei-utility/](https://nsyntych.github.io/huawei-utility/)
+
 ## Features
 
 - **XML Config Decryptor**:
