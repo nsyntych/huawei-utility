@@ -9,7 +9,7 @@
 	<link href="css/style.css" rel="stylesheet">
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="description" content="Client-side tool to decrypt Huawei router backup XML configurations (hw_ctree.xml), recover Nova_admin factory passwords, Wi-Fi keys, and hash passwords.">
+	<meta name="description" content="Client-side tool to decrypt Huawei router backup XML configurations (hw_ctree.xml), recover admin factory passwords, Wi-Fi keys, and hash passwords.">
 	<script src="js/constants.js"></script> 
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/enc-hex.min.js"></script>
@@ -56,7 +56,7 @@
 					<span class="pulse-badge">Instant In-Browser Decryption</span>
 				</div>
 				<p class="subtitle">
-					Upload your router backup configuration file (e.g. <code>hw_ctree.xml</code>) to extract and decode all stored credentials, including the <strong>Nova_admin factory password</strong>, Wi-Fi pre-shared keys, user accounts, and system secrets.
+					Upload your router backup configuration file (e.g. <code>hw_ctree.xml</code>) to extract and decode all stored credentials, including the <strong>admin factory password</strong>, Wi-Fi pre-shared keys, user accounts, and system secrets.
 				</p>
 			</div>
 
@@ -81,10 +81,6 @@
 						<button type="button" class="btn btn-primary" id="btnBrowseFile">
 							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
 							Browse XML File
-						</button>
-						<button type="button" class="btn btn-secondary" id="btnLoadSample">
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
-							Load Sample <code>hw_ctree.xml</code>
 						</button>
 						<button type="button" class="btn btn-outline" id="btnTogglePaste">
 							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
@@ -136,7 +132,7 @@
 
 				<!-- Quick Highlight Cards -->
 				<div class="highlights-grid" id="highlightsGrid">
-					<!-- Admin & Web Users Card (Includes Nova_admin Factory Password) -->
+					<!-- Admin & Web Users Card (Includes Admin Factory Password) -->
 					<div class="highlight-card admin-card">
 						<div class="highlight-card-header">
 							<div class="card-title-group">
@@ -197,7 +193,7 @@
 				<div class="table-controls-container">
 					<div class="search-box">
 						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-						<input type="text" id="credentialSearchInput" class="user-input search-input" placeholder="Search passwords, Nova_admin, factory, SSID, username, tokens...">
+						<input type="text" id="credentialSearchInput" class="user-input search-input" placeholder="Search passwords, admin, factory, SSID, username, tokens...">
 						<button type="button" id="btnClearSearch" class="btn-clear" style="display: none;">&times;</button>
 					</div>
 					<div class="filter-pills" id="categoryFilterPills">
@@ -248,7 +244,7 @@
 				</p>
 				<div class="features-list">
 					<div class="feature-item">
-						<strong>XML Config Decryptor</strong>: Upload backup configurations (<code>hw_ctree.xml</code>) to decrypt all hidden credentials, including factory passwords (e.g. <code>Nova_admin</code>), Wi-Fi PSK keys, and CLI user passwords.
+						<strong>XML Config Decryptor</strong>: Upload backup configurations (<code>hw_ctree.xml</code>) to decrypt all hidden credentials, including factory passwords (e.g. <code>admin</code>), Wi-Fi PSK keys, and CLI user passwords.
 					</div>
 					<div class="feature-item">
 						<strong>Password Generator</strong>: Compute hashes matching Huawei router firmware modes (MD5, SHA256-MD5, PBKDF2-SHA256 with 5000 iterations).

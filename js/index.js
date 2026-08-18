@@ -143,7 +143,7 @@ function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml") {
 			const alias = user.getAttribute("Alias") || "";
 			const userLevel = user.getAttribute("UserLevel") || "";
 
-			const isNovaAdmin = userName.toLowerCase().includes("nova") || userName.toLowerCase().includes("admin");
+			const isAdminUser = userName.toLowerCase().includes("admin");
 
 			if (factoryPass && factoryPass.startsWith("$2")) {
 				seenCiphertexts.add(factoryPass);
@@ -173,7 +173,7 @@ function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml") {
 					field: "Current Password (Hash/Plain)",
 					plainValue: decrypted,
 					cipherValue: pass,
-					isFeatured: isNovaAdmin,
+					isFeatured: isAdminUser,
 					isHash: decrypted.length === 64,
 					meta: { userName, userLevel, passMode, salt, alias }
 				});
@@ -473,10 +473,12 @@ function renderHighlightCards() {
 		userGroups[uName].push(item);
 	});
 
-	// Sort Nova_admin first
+	// Sort admin accounts first
 	const sortedUserNames = Object.keys(userGroups).sort((a, b) => {
-		if (a.toLowerCase().includes("nova_admin")) return -1;
-		if (b.toLowerCase().includes("nova_admin")) return 1;
+		const aIsAdmin = a.toLowerCase().includes("admin");
+		const bIsAdmin = b.toLowerCase().includes("admin");
+		if (aIsAdmin && !bIsAdmin) return -1;
+		if (!aIsAdmin && bIsAdmin) return 1;
 		return a.localeCompare(b);
 	});
 
@@ -485,7 +487,7 @@ function renderHighlightCards() {
 	} else {
 		sortedUserNames.forEach(uName => {
 			const items = userGroups[uName];
-			const isFeatured = uName.toLowerCase().includes("nova_admin") || uName.toLowerCase().includes("admin");
+			const isFeatured = uName.toLowerCase().includes("admin");
 			const userLevel = items[0]?.meta?.userLevel ?? "";
 			const roleText = userLevel === "0" ? "Admin (Level 0)" : (userLevel === "1" ? "User (Level 1)" : "Web User");
 
@@ -831,7 +833,6 @@ function setupFileHandlers() {
 	const dropZone = document.getElementById("dropZone");
 	const fileInput = document.getElementById("xmlFileInput");
 	const btnBrowse = document.getElementById("btnBrowseFile");
-	const btnLoadSample = document.getElementById("btnLoadSample");
 	const btnTogglePaste = document.getElementById("btnTogglePaste");
 	const pasteBox = document.getElementById("pasteBox");
 	const btnParsePasted = document.getElementById("btnParsePasted");
@@ -878,24 +879,6 @@ function setupFileHandlers() {
 		});
 	}
 
-	if (btnLoadSample) {
-		btnLoadSample.addEventListener("click", (e) => {
-			e.stopPropagation();
-			fetch("hw_ctree.xml")
-				.then(res => {
-					if (!res.ok) throw new Error("Could not load sample hw_ctree.xml");
-					return res.text();
-				})
-				.then(text => {
-					parseAndDecryptXml(text, "hw_ctree.xml");
-					showToast("Sample hw_ctree.xml loaded & decrypted!");
-				})
-				.catch(err => {
-					console.error(err);
-					showToast("Error loading sample hw_ctree.xml", "warning");
-				});
-		});
-	}
 
 	if (btnTogglePaste && pasteBox) {
 		btnTogglePaste.addEventListener("click", (e) => {
@@ -1148,18 +1131,6 @@ window.addEventListener('DOMContentLoaded', () => {
 	);
 	OnCipherInputChange();
 	popStateEvent();
-
-	// Automatically load sample hw_ctree.xml on initial landing so the user gets instant results
-	fetch("hw_ctree.xml")
-		.then(res => res.ok ? res.text() : null)
-		.then(text => {
-			if (text) {
-				parseAndDecryptXml(text, "hw_ctree.xml");
-			}
-		})
-		.catch(err => {
-			console.log("Sample hw_ctree.xml auto-load skipped or running outside HTTP server.");
-		});
 });
 
 window.addEventListener('popstate', popStateEvent);

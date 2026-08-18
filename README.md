@@ -8,7 +8,7 @@ A browser-based client-side utility suite for Huawei routers and CPE devices. Al
 
 - **XML Config Decryptor**:
   - Drag & drop or browse your router backup XML configuration file (e.g. `hw_ctree.xml`) or paste raw XML.
-  - Automatically recovers and decodes factory passwords (such as `Nova_admin`), user accounts, Wi-Fi WPA/WPA2 pre-shared keys, WPS PINs, CLI accounts, SSL cert passwords, and CWMP settings.
+  - Automatically recovers and decodes factory passwords (such as `admin`), user accounts, Wi-Fi WPA/WPA2 pre-shared keys, WPS PINs, CLI accounts, SSL cert passwords, and CWMP settings.
   - Instant live search and category filtering.
   - One-click copy for any password or all credentials.
   - "Download Decrypted XML" feature to export a clean, fully-decrypted XML configuration file.
