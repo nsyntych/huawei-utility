@@ -531,123 +531,127 @@ function renderDecryptionResults() {
 function renderHighlightCards() {
 	// 1. Web Users Highlight
 	const webUsersContainer = document.getElementById("highlightWebUsers");
-	webUsersContainer.innerHTML = "";
-	const webItems = decryptedItems.filter(i => i.category === "WEB");
+	if (webUsersContainer) {
+		webUsersContainer.innerHTML = "";
+		const webItems = decryptedItems.filter(i => i.category === "WEB");
 
-	// Group by username (merging IteratePassword into the same user tile)
-	const userGroups = {};
-	webItems.forEach(item => {
-		let uName = ((item.meta && item.meta.userName) || item.title || "User").replace(/\s*\(IteratePassword\)/i, "").trim();
-		if (!userGroups[uName]) userGroups[uName] = [];
-		userGroups[uName].push(item);
-	});
-
-	// Sort admin accounts first
-	const sortedUserNames = Object.keys(userGroups).sort((a, b) => {
-		const aIsAdmin = a.toLowerCase().includes("admin");
-		const bIsAdmin = b.toLowerCase().includes("admin");
-		if (aIsAdmin && !bIsAdmin) return -1;
-		if (!aIsAdmin && bIsAdmin) return 1;
-		return a.localeCompare(b);
-	});
-
-	if (sortedUserNames.length === 0) {
-		webUsersContainer.innerHTML = '<p class="cred-label">No web user credentials found.</p>';
-	} else {
-		sortedUserNames.forEach(uName => {
-			const items = userGroups[uName];
-			const isFeatured = uName.toLowerCase().includes("admin");
-			const userLevel = items[0]?.meta?.userLevel ?? "";
-			const roleText = userLevel === "0" ? "Admin (Level 0)" : (userLevel === "1" ? "User (Level 1)" : "Web User");
-
-			let html = `
-				<div class="user-highlight-item ${isFeatured ? 'featured' : ''}">
-					<div class="user-item-title">
-						<span class="username-tag">${escapeHtml(uName)}</span>
-						<span class="account-role">${roleText}</span>
-					</div>
-			`;
-
-			items.forEach(it => {
-				const isFactory = it.field.includes("Factory");
-				const isHashVal = it.isHash || (it.plainValue && it.plainValue.length >= 24 && /^[a-fA-F0-9]+$/.test(it.plainValue));
-				const valueClass = isFactory ? "factory-pass" : (isHashVal ? "hash-val" : "");
-				const shouldMask = !isHashVal;
-
-				html += `
-					<div class="credential-row">
-						<span class="cred-label">${escapeHtml(it.field)}:</span>
-						<div class="cred-value-wrap">
-							${shouldMask ? `
-								<span class="cred-value ${valueClass} masked" id="card_val_${it.id}" data-plain="${escapeHtml(it.plainValue)}" data-masked="true">••••••••••••</span>
-								<button type="button" class="btn-icon-unveil" onclick="togglePasswordVisibility('card_val_${it.id}', this)" title="Show / Hide password">
-									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-								</button>
-							` : `
-								<span class="cred-value ${valueClass}" title="${escapeHtml(it.plainValue)}">${escapeHtml(it.plainValue)}</span>
-							`}
-							<button type="button" class="btn-icon-copy" onclick="copyToClipboard('${escapeJsString(it.plainValue)}')" title="Copy to clipboard">
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-							</button>
-						</div>
-					</div>
-				`;
-			});
-
-			html += `</div>`;
-			webUsersContainer.insertAdjacentHTML("beforeend", html);
+		// Group by username (merging IteratePassword into the same user tile)
+		const userGroups = {};
+		webItems.forEach(item => {
+			let uName = ((item.meta && item.meta.userName) || item.title || "User").replace(/\s*\(IteratePassword\)/i, "").trim();
+			if (!userGroups[uName]) userGroups[uName] = [];
+			userGroups[uName].push(item);
 		});
+
+		// Sort admin accounts first
+		const sortedUserNames = Object.keys(userGroups).sort((a, b) => {
+			const aIsAdmin = a.toLowerCase().includes("admin");
+			const bIsAdmin = b.toLowerCase().includes("admin");
+			if (aIsAdmin && !bIsAdmin) return -1;
+			if (!aIsAdmin && bIsAdmin) return 1;
+			return a.localeCompare(b);
+		});
+
+		if (sortedUserNames.length === 0) {
+			webUsersContainer.innerHTML = '<p class="cred-label">No web user credentials found.</p>';
+		} else {
+			sortedUserNames.forEach(uName => {
+				const items = userGroups[uName];
+				const isFeatured = uName.toLowerCase().includes("admin");
+				const userLevel = items[0]?.meta?.userLevel ?? "";
+				const roleText = userLevel === "0" ? "Admin (Level 0)" : (userLevel === "1" ? "User (Level 1)" : "Web User");
+
+				let html = `
+					<div class="user-highlight-item ${isFeatured ? 'featured' : ''}">
+						<div class="user-item-title">
+							<span class="username-tag">${escapeHtml(uName)}</span>
+							<span class="account-role">${roleText}</span>
+						</div>
+				`;
+
+				items.forEach(it => {
+					const isFactory = it.field.includes("Factory");
+					const isHashVal = it.isHash || (it.plainValue && it.plainValue.length >= 24 && /^[a-fA-F0-9]+$/.test(it.plainValue));
+					const valueClass = isFactory ? "factory-pass" : (isHashVal ? "hash-val" : "");
+					const shouldMask = !isHashVal;
+
+					html += `
+						<div class="credential-row">
+							<span class="cred-label">${escapeHtml(it.field)}:</span>
+							<div class="cred-value-wrap">
+								${shouldMask ? `
+									<span class="cred-value ${valueClass} masked" id="card_val_${it.id}" data-plain="${escapeHtml(it.plainValue)}" data-masked="true">••••••••••••</span>
+									<button type="button" class="btn-icon-unveil" onclick="togglePasswordVisibility('card_val_${it.id}', this)" title="Show / Hide password">
+										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+									</button>
+								` : `
+									<span class="cred-value ${valueClass}" title="${escapeHtml(it.plainValue)}">${escapeHtml(it.plainValue)}</span>
+								`}
+								<button type="button" class="btn-icon-copy" onclick="copyToClipboard('${escapeJsString(it.plainValue)}')" title="Copy to clipboard">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+								</button>
+							</div>
+						</div>
+					`;
+				});
+
+				html += `</div>`;
+				webUsersContainer.insertAdjacentHTML("beforeend", html);
+			});
+		}
 	}
 
 	// 2. Wi-Fi Highlight
 	const wifiContainer = document.getElementById("highlightWifi");
-	wifiContainer.innerHTML = "";
-	const wifiItems = decryptedItems.filter(i => i.category === "WIFI");
+	if (wifiContainer) {
+		wifiContainer.innerHTML = "";
+		const wifiItems = decryptedItems.filter(i => i.category === "WIFI");
 
-	if (wifiItems.length === 0) {
-		wifiContainer.innerHTML = '<p class="cred-label">No Wi-Fi credentials found.</p>';
-	} else {
-		// Group by SSID / title
-		const wifiGroups = {};
-		wifiItems.forEach(item => {
-			const groupKey = item.title;
-			if (!wifiGroups[groupKey]) wifiGroups[groupKey] = [];
-			wifiGroups[groupKey].push(item);
-		});
-
-		Object.keys(wifiGroups).forEach(groupKey => {
-			const items = wifiGroups[groupKey];
-			let html = `
-				<div class="user-highlight-item">
-					<div class="user-item-title">
-						<span class="username-tag">${escapeHtml(groupKey)}</span>
-					</div>
-			`;
-			items.forEach(it => {
-				const isHashVal = it.isHash || (it.plainValue && it.plainValue.length >= 24 && /^[a-fA-F0-9]+$/.test(it.plainValue));
-				const shouldMask = !isHashVal;
-				html += `
-					<div class="credential-row">
-						<span class="cred-label">${escapeHtml(it.field)}:</span>
-						<div class="cred-value-wrap">
-							${shouldMask ? `
-								<span class="cred-value wifi-pass masked" id="wifi_val_${it.id}" data-plain="${escapeHtml(it.plainValue)}" data-masked="true">••••••••••••</span>
-								<button type="button" class="btn-icon-unveil" onclick="togglePasswordVisibility('wifi_val_${it.id}', this)" title="Show / Hide password">
-									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-								</button>
-							` : `
-								<span class="cred-value wifi-pass" title="${escapeHtml(it.plainValue)}">${escapeHtml(it.plainValue)}</span>
-							`}
-							<button type="button" class="btn-icon-copy" onclick="copyToClipboard('${escapeJsString(it.plainValue)}')" title="Copy password">
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-							</button>
-						</div>
-					</div>
-				`;
+		if (wifiItems.length === 0) {
+			wifiContainer.innerHTML = '<p class="cred-label">No Wi-Fi credentials found.</p>';
+		} else {
+			// Group by SSID / title
+			const wifiGroups = {};
+			wifiItems.forEach(item => {
+				const groupKey = item.title;
+				if (!wifiGroups[groupKey]) wifiGroups[groupKey] = [];
+				wifiGroups[groupKey].push(item);
 			});
-			html += `</div>`;
-			wifiContainer.insertAdjacentHTML("beforeend", html);
-		});
+
+			Object.keys(wifiGroups).forEach(groupKey => {
+				const items = wifiGroups[groupKey];
+				let html = `
+					<div class="user-highlight-item">
+						<div class="user-item-title">
+							<span class="username-tag">${escapeHtml(groupKey)}</span>
+						</div>
+				`;
+				items.forEach(it => {
+					const isHashVal = it.isHash || (it.plainValue && it.plainValue.length >= 24 && /^[a-fA-F0-9]+$/.test(it.plainValue));
+					const shouldMask = !isHashVal;
+					html += `
+						<div class="credential-row">
+							<span class="cred-label">${escapeHtml(it.field)}:</span>
+							<div class="cred-value-wrap">
+								${shouldMask ? `
+									<span class="cred-value wifi-pass masked" id="wifi_val_${it.id}" data-plain="${escapeHtml(it.plainValue)}" data-masked="true">••••••••••••</span>
+									<button type="button" class="btn-icon-unveil" onclick="togglePasswordVisibility('wifi_val_${it.id}', this)" title="Show / Hide password">
+										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+									</button>
+								` : `
+									<span class="cred-value wifi-pass" title="${escapeHtml(it.plainValue)}">${escapeHtml(it.plainValue)}</span>
+								`}
+								<button type="button" class="btn-icon-copy" onclick="copyToClipboard('${escapeJsString(it.plainValue)}')" title="Copy password">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+								</button>
+							</div>
+						</div>
+					`;
+				});
+				html += `</div>`;
+				wifiContainer.insertAdjacentHTML("beforeend", html);
+			});
+		}
 	}
 }
 
@@ -1548,3 +1552,16 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 window.addEventListener('popstate', popStateEvent);
+
+// Register Progressive Web App (PWA) Service Worker for offline support
+if ('serviceWorker' in navigator) {
+	window.addEventListener('load', () => {
+		navigator.serviceWorker.register('./sw.js')
+			.then((reg) => {
+				console.log('PWA Service Worker active:', reg.scope);
+			})
+			.catch((err) => {
+				console.warn('PWA Service Worker registration failed:', err);
+			});
+	});
+}

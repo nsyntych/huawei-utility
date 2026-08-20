@@ -1,7 +1,5 @@
 const BLOCK_SIZE = 0X14;
-importScripts("constants.js", 
-	"https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js", 
-	"https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/enc-hex.min.js");
+importScripts("constants.js", "vendor/crypto-js.min.js", "vendor/enc-hex.min.js");
 
 Uint8Array.prototype.readUInt32LE = function(offset)
 {

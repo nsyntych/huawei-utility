@@ -3,19 +3,22 @@
 
 <head>
 	<title>Huawei Password & Configuration Utility</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Client-side tool to decrypt Huawei router backup XML configurations (hw_ctree.xml), recover admin factory passwords, Wi-Fi keys, and hash passwords.">
+	<meta name="theme-color" content="#161822">
+	<link rel="manifest" href="manifest.json">
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
+	<link rel="alternate icon" href="favicon.ico">
+	<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 	<link href="css/style.css" rel="stylesheet">
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="description" content="Client-side tool to decrypt Huawei router backup XML configurations (hw_ctree.xml), recover admin factory passwords, Wi-Fi keys, and hash passwords.">
-	<link rel="icon" type="image/svg+xml" href="favicon.svg">
-	<link rel="alternate icon" href="favicon.ico">
 	<script src="js/constants.js"></script> 
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/enc-hex.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/he/1.2.0/he.min.js" integrity="sha512-PEsccDx9jqX6Dh4wZDCnWMaIO3gAaU0j46W//sSqQhUQxky6/eHZyeB3NrXD2xsyugAKd4KPiDANkcuoEa2JuA==" crossorigin="anonymous"></script>
+	<script src="js/vendor/crypto-js.min.js"></script>
+	<script src="js/vendor/enc-hex.min.js"></script>
+	<script src="js/vendor/he.min.js"></script>
 </head>
 
 <body>
