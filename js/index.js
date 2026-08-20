@@ -476,11 +476,11 @@ function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml", saveToHistory 
 	// Update UI
 	renderDecryptionResults();
 
-	// Hide upload dropzone section when configuration is active
-	const uploadSection = document.getElementById("uploadSection");
-	if (uploadSection) {
-		uploadSection.style.display = "none";
-	}
+	// Hide upload dropzone when configuration is active (keeps saved configs section accessible)
+	const dropZone = document.getElementById("dropZone");
+	if (dropZone) dropZone.style.display = "none";
+	const pasteBox = document.getElementById("pasteBox");
+	if (pasteBox) pasteBox.style.display = "none";
 
 	// Keep view anchored at the top
 	ensureTopViewport();
@@ -1226,12 +1226,12 @@ function setupFileHandlers() {
 	const btnOpenNewConfig = document.getElementById("btnOpenNewConfig");
 	if (btnOpenNewConfig) {
 		btnOpenNewConfig.addEventListener("click", () => {
-			const uploadSection = document.getElementById("uploadSection");
-			if (uploadSection) {
-				const isHidden = uploadSection.style.display === "none";
-				uploadSection.style.display = isHidden ? "block" : "none";
+			const dropZone = document.getElementById("dropZone");
+			if (dropZone) {
+				const isHidden = dropZone.style.display === "none";
+				dropZone.style.display = isHidden ? "block" : "none";
 				if (isHidden) {
-					uploadSection.scrollIntoView({ behavior: "smooth", block: "start" });
+					dropZone.scrollIntoView({ behavior: "smooth", block: "start" });
 				}
 			}
 		});
