@@ -115,7 +115,7 @@ function decryptHuaweiString(inputStr, keyHex = PASSWORD_HEX) {
 // -------------------------------------------------------------
 // XML Parsing & Credential Extraction
 // -------------------------------------------------------------
-function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml") {
+function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml", saveToHistory = true) {
 	currentXmlText = xmlString;
 	currentFileName = fileName;
 	decryptedItems = [];
@@ -420,6 +420,11 @@ function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml") {
 
 	// Update UI
 	renderDecryptionResults();
+
+	// Save to Local Storage History (if enabled)
+	if (saveToHistory) {
+		saveConfigToStorage(fileName, xmlString, decryptedItems.length);
+	}
 }
 
 // -------------------------------------------------------------
@@ -827,6 +832,219 @@ function escapeJsString(str) {
 }
 
 // -------------------------------------------------------------
+// Client-Side Local Storage & History Management
+// -------------------------------------------------------------
+const STORAGE_CONFIGS_KEY = "hw_util_saved_configs_v1";
+const STORAGE_LAST_ACTIVE_KEY = "hw_util_last_active_id";
+const STORAGE_REMEMBER_KEY = "hw_util_remember_configs";
+const MAX_HISTORY_CONFIGS = 6;
+
+function isRememberConfigsEnabled() {
+	try {
+		const stored = localStorage.getItem(STORAGE_REMEMBER_KEY);
+		return stored === null ? true : stored === "true";
+	} catch (e) {
+		return false;
+	}
+}
+
+function setRememberConfigsEnabled(enabled) {
+	try {
+		localStorage.setItem(STORAGE_REMEMBER_KEY, enabled ? "true" : "false");
+	} catch (e) {
+		console.warn("Could not save storage preference:", e);
+	}
+}
+
+function getSavedConfigs() {
+	try {
+		const raw = localStorage.getItem(STORAGE_CONFIGS_KEY);
+		return raw ? JSON.parse(raw) : [];
+	} catch (e) {
+		console.warn("Could not read saved configs from localStorage:", e);
+		return [];
+	}
+}
+
+function saveConfigToStorage(fileName, xmlText, decryptedCount) {
+	if (!isRememberConfigsEnabled() || !xmlText) return;
+	try {
+		let configs = getSavedConfigs();
+		// Remove existing entry with same fileName or identical XML content to avoid redundancy
+		configs = configs.filter(c => c.fileName !== fileName && c.xmlContent !== xmlText);
+
+		const sizeKb = (new Blob([xmlText]).size / 1024).toFixed(1) + " KB";
+		const now = new Date();
+		const savedAt = now.toLocaleDateString() + " " + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+		const newEntry = {
+			id: "cfg_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
+			fileName: fileName || "hw_ctree.xml",
+			fileSize: sizeKb,
+			savedAt: savedAt,
+			xmlContent: xmlText,
+			decryptedCount: decryptedCount || 0
+		};
+
+		configs.unshift(newEntry);
+		if (configs.length > MAX_HISTORY_CONFIGS) {
+			configs = configs.slice(0, MAX_HISTORY_CONFIGS);
+		}
+
+		// Save with quota handling fallback
+		let saved = false;
+		while (!saved && configs.length > 0) {
+			try {
+				localStorage.setItem(STORAGE_CONFIGS_KEY, JSON.stringify(configs));
+				localStorage.setItem(STORAGE_LAST_ACTIVE_KEY, newEntry.id);
+				saved = true;
+			} catch (e) {
+				// Quota exceeded: trim oldest
+				if (configs.length > 1) {
+					configs.pop();
+				} else {
+					console.warn("LocalStorage full, cannot save config:", e);
+					break;
+				}
+			}
+		}
+
+		renderRecentConfigsUI();
+	} catch (err) {
+		console.warn("Failed saving to localStorage:", err);
+	}
+}
+
+function deleteSavedConfig(id) {
+	try {
+		let configs = getSavedConfigs();
+		configs = configs.filter(c => c.id !== id);
+		localStorage.setItem(STORAGE_CONFIGS_KEY, JSON.stringify(configs));
+		
+		const activeId = localStorage.getItem(STORAGE_LAST_ACTIVE_KEY);
+		if (activeId === id) {
+			localStorage.removeItem(STORAGE_LAST_ACTIVE_KEY);
+		}
+		
+		renderRecentConfigsUI();
+		showToast("Removed file from browser storage.");
+	} catch (e) {
+		console.warn("Could not delete saved config:", e);
+	}
+}
+
+function clearAllSavedConfigs() {
+	if (!confirm("Are you sure you want to clear all stored router configuration files from this browser?")) {
+		return;
+	}
+	try {
+		localStorage.removeItem(STORAGE_CONFIGS_KEY);
+		localStorage.removeItem(STORAGE_LAST_ACTIVE_KEY);
+		renderRecentConfigsUI();
+		showToast("All saved configurations cleared from browser storage.");
+	} catch (e) {
+		console.warn("Could not clear storage:", e);
+	}
+}
+
+function loadConfigById(id) {
+	const configs = getSavedConfigs();
+	const target = configs.find(c => c.id === id);
+	if (target && target.xmlContent) {
+		try {
+			localStorage.setItem(STORAGE_LAST_ACTIVE_KEY, id);
+		} catch (_) {}
+		parseAndDecryptXml(target.xmlContent, target.fileName, false);
+		renderRecentConfigsUI();
+		showToast(`Loaded "${target.fileName}" from browser storage`);
+	} else {
+		showToast("Could not load configuration.", "warning");
+	}
+}
+
+function loadLastActiveConfigOnStartup() {
+	if (!isRememberConfigsEnabled()) return;
+	const configs = getSavedConfigs();
+	if (configs.length === 0) return;
+
+	const activeId = localStorage.getItem(STORAGE_LAST_ACTIVE_KEY);
+	const target = configs.find(c => c.id === activeId) || configs[0];
+	if (target && target.xmlContent) {
+		parseAndDecryptXml(target.xmlContent, target.fileName, false);
+		renderRecentConfigsUI();
+	}
+}
+
+function renderRecentConfigsUI() {
+	const section = document.getElementById("recentConfigsSection");
+	const list = document.getElementById("savedConfigsList");
+	const countElem = document.getElementById("savedConfigsCount");
+	const chkRemember = document.getElementById("chkRememberConfigs");
+
+	if (chkRemember) {
+		chkRemember.checked = isRememberConfigsEnabled();
+	}
+
+	if (!section || !list) return;
+
+	const configs = getSavedConfigs();
+	if (countElem) countElem.textContent = configs.length;
+
+	if (configs.length === 0) {
+		section.style.display = "none";
+		list.innerHTML = "";
+		return;
+	}
+
+	section.style.display = "block";
+	const activeId = localStorage.getItem(STORAGE_LAST_ACTIVE_KEY);
+
+	list.innerHTML = configs.map(cfg => {
+		const isActive = cfg.id === activeId || (cfg.fileName === currentFileName && currentXmlText === cfg.xmlContent);
+		return `
+			<div class="recent-config-card ${isActive ? 'active-config' : ''}" data-id="${cfg.id}">
+				<div class="recent-card-top">
+					<div class="recent-file-info">
+						<svg class="recent-file-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+						<span class="recent-file-name" title="${escapeHtml(cfg.fileName)}">${escapeHtml(cfg.fileName)}</span>
+					</div>
+					<button type="button" class="btn-icon-danger btn-delete-config" data-id="${cfg.id}" title="Remove this file from saved storage">
+						<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+					</button>
+				</div>
+				<div class="recent-card-meta">
+					<span class="recent-pill">${escapeHtml(cfg.fileSize)}</span>
+					<span class="recent-pill recent-pill-count">${cfg.decryptedCount} items</span>
+					<span class="recent-pill">${escapeHtml(cfg.savedAt)}</span>
+				</div>
+				<div class="recent-card-actions">
+					<button type="button" class="btn btn-sm ${isActive ? 'btn-outline' : 'btn-primary'} btn-load-config" data-id="${cfg.id}">
+						${isActive ? '✓ Currently Loaded' : 'Restore & View'}
+					</button>
+				</div>
+			</div>
+		`;
+	}).join("");
+
+	// Attach click listeners
+	list.querySelectorAll(".btn-load-config").forEach(btn => {
+		btn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			const id = btn.getAttribute("data-id");
+			if (id) loadConfigById(id);
+		});
+	});
+
+	list.querySelectorAll(".btn-delete-config").forEach(btn => {
+		btn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			const id = btn.getAttribute("data-id");
+			if (id) deleteSavedConfig(id);
+		});
+	});
+}
+
+// -------------------------------------------------------------
 // Drag & Drop / File Loading Setup
 // -------------------------------------------------------------
 function setupFileHandlers() {
@@ -947,6 +1165,24 @@ function setupFileHandlers() {
 			renderTableRows();
 		});
 	});
+
+	// Storage controls
+	const btnClearSaved = document.getElementById("btnClearSavedConfigs");
+	if (btnClearSaved) {
+		btnClearSaved.addEventListener("click", clearAllSavedConfigs);
+	}
+
+	const chkRemember = document.getElementById("chkRememberConfigs");
+	if (chkRemember) {
+		chkRemember.addEventListener("change", (e) => {
+			setRememberConfigsEnabled(e.target.checked);
+			if (!e.target.checked) {
+				showToast("Auto-saving disabled on this device.", "info");
+			} else {
+				showToast("Auto-saving enabled for uploaded configurations.");
+			}
+		});
+	}
 }
 
 function loadFile(file) {
@@ -1166,6 +1402,8 @@ function setupDisclaimerModal() {
 window.addEventListener('DOMContentLoaded', () => {
 	setupFileHandlers();
 	setupDisclaimerModal();
+	renderRecentConfigsUI();
+	loadLastActiveConfigOnStartup();
 	EncryptionModeChange();
 	OnRandomizeFieldChange();
 	sendToWorker = true;
