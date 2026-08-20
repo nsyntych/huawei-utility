@@ -1118,9 +1118,54 @@ function popStateEvent() {
 	});
 }
 
+// -------------------------------------------------------------
+// Legal Disclaimer Modal Handling
+// -------------------------------------------------------------
+function openDisclaimerModal() {
+	const modal = document.getElementById("disclaimerModal");
+	if (modal) {
+		modal.style.display = "flex";
+		document.body.style.overflow = "hidden";
+	}
+}
+
+function closeDisclaimerModal() {
+	const modal = document.getElementById("disclaimerModal");
+	if (modal) {
+		modal.style.display = "none";
+		document.body.style.overflow = "";
+	}
+}
+
+function setupDisclaimerModal() {
+	const openBtn = document.getElementById("btnOpenDisclaimerModal");
+	const closeBtn = document.getElementById("btnCloseDisclaimerModal");
+	const ackBtn = document.getElementById("btnAcknowledgeDisclaimer");
+	const modal = document.getElementById("disclaimerModal");
+
+	if (openBtn) openBtn.addEventListener("click", openDisclaimerModal);
+	if (closeBtn) closeBtn.addEventListener("click", closeDisclaimerModal);
+	if (ackBtn) ackBtn.addEventListener("click", closeDisclaimerModal);
+
+	if (modal) {
+		modal.addEventListener("click", (e) => {
+			if (e.target === modal) {
+				closeDisclaimerModal();
+			}
+		});
+	}
+
+	window.addEventListener("keydown", (e) => {
+		if (e.key === "Escape" && modal && modal.style.display === "flex") {
+			closeDisclaimerModal();
+		}
+	});
+}
+
 // Initialize on page load
 window.addEventListener('DOMContentLoaded', () => {
 	setupFileHandlers();
+	setupDisclaimerModal();
 	EncryptionModeChange();
 	OnRandomizeFieldChange();
 	sendToWorker = true;

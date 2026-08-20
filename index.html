@@ -10,6 +10,8 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="description" content="Client-side tool to decrypt Huawei router backup XML configurations (hw_ctree.xml), recover admin factory passwords, Wi-Fi keys, and hash passwords.">
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
+	<link rel="alternate icon" href="favicon.ico">
 	<script src="js/constants.js"></script> 
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/enc-hex.min.js"></script>
@@ -253,10 +255,45 @@
 						<strong>Cipher / Decipher</strong>: Manually cipher or decipher individual strings formatted with Huawei's custom base-93/AES-CBC encoding (<code>$2...$</code>).
 					</div>
 				</div>
+
 				<div class="credits-box" style="margin-top: 1.5rem; padding: 1rem 1.2rem; background: var(--bg-card); border-left: 4px solid var(--accent-blue); border-radius: var(--radius-sm);">
 					<strong>Original Author &amp; Research:</strong> André Brandão (Fayaru)<br>
 					&bull; <strong>Technical Writeup:</strong> <a href="https://blog.fayaru.me/posts/huawei_router_config/" target="_blank" rel="noreferrer">Huawei Router Configuration &amp; Encryption Analysis by Fayaru</a><br>
 					&bull; <strong>Original GitHub Repository:</strong> <a href="https://github.com/andreluis034/huawei-utility-page" target="_blank" rel="noreferrer">andreluis034/huawei-utility-page</a>
+				</div>
+
+				<!-- Legal & Trademark Disclaimer Section -->
+				<div class="disclaimer-card" style="margin-top: 2rem;">
+					<div class="disclaimer-header">
+						<span class="disclaimer-icon">⚖️</span>
+						<h2>Legal &amp; Trademark Disclaimers</h2>
+					</div>
+					<div class="disclaimer-body">
+						<div class="disclaimer-item">
+							<h4>1. Trademark &amp; Non-Affiliation Notice</h4>
+							<p>
+								<strong>&ldquo;Huawei&rdquo;</strong> and related trademarks, model names, and logos are registered trademarks of <strong>Huawei Technologies Co., Ltd.</strong> (and/or its respective subsidiaries and affiliates). This independent open-source software is <strong>not affiliated with, endorsed by, sponsored by, or officially connected to Huawei Technologies Co., Ltd.</strong> References to Huawei or specific router models are strictly for descriptive, identification, and compatibility purposes (nominative fair use).
+							</p>
+						</div>
+						<div class="disclaimer-item">
+							<h4>2. Lawful &amp; Authorized Use Only</h4>
+							<p>
+								This utility is provided strictly for lawful educational, diagnostic, network administration, and personal configuration recovery purposes on hardware you legally own or are authorized to manage.
+							</p>
+						</div>
+						<div class="disclaimer-item">
+							<h4>3. Strict Non-Condonation of Illegal Activities &amp; ISP Violations</h4>
+							<p>
+								The authors and contributors do <strong>not condone, promote, or encourage any illegal activity</strong>, unauthorized network access, cracking, or violation of any Internet Service Provider (ISP) Terms of Service (ToS), Acceptable Use Policies (AUP), or equipment lease agreements. Users are solely responsible for ensuring their actions comply with all applicable local, national, and international laws.
+							</p>
+						</div>
+						<div class="disclaimer-item">
+							<h4>4. Disclaimer of Warranties &amp; Limitation of Liability (&ldquo;AS IS&rdquo;)</h4>
+							<p>
+								This software is distributed under the GNU General Public License v3.0 &ldquo;AS IS&rdquo; without warranties of any kind, either express or implied. Under no circumstances shall the authors or contributors be liable for any direct, indirect, incidental, or consequential damages, bricked equipment, data loss, ISP penalties, fines, or legal consequences arising from the use or misuse of this tool.
+							</p>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -333,6 +370,66 @@
 			</div>
 		</div>
 	</main>
+
+	<!-- Global Footer with Legal Disclaimer -->
+	<footer class="footer-container">
+		<div class="footer-inner">
+			<div class="footer-disclaimer">
+				<p class="footer-text">
+					<strong>Disclaimer:</strong> &ldquo;Huawei&rdquo; is a registered trademark of Huawei Technologies Co., Ltd. This independent open-source utility is <strong>not affiliated with, sponsored by, or endorsed by</strong> Huawei Technologies Co., Ltd. References to Huawei are for compatibility and identification purposes only under nominative fair use.
+				</p>
+				<p class="footer-text-secondary">
+					For lawful personal configuration recovery, diagnostics, and educational use only. The authors do not condone illegal activities or breaches of ISP Terms of Service. Provided &ldquo;AS IS&rdquo; without warranties.
+				</p>
+			</div>
+			<div class="footer-links">
+				<button type="button" class="btn-link" id="btnOpenDisclaimerModal">⚖️ Legal Disclaimers</button>
+				<span class="footer-dot">&bull;</span>
+				<a href="https://github.com/nsyntych/huawei-utility" target="_blank" rel="noreferrer">GitHub Repository</a>
+				<span class="footer-dot">&bull;</span>
+				<a href="https://github.com/nsyntych/huawei-utility/blob/main/LICENSE" target="_blank" rel="noreferrer">GNU GPLv3</a>
+			</div>
+		</div>
+	</footer>
+
+	<!-- Disclaimer Modal -->
+	<div id="disclaimerModal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+		<div class="modal-dialog">
+			<div class="modal-header">
+				<div class="modal-title-group">
+					<span class="modal-icon">⚖️</span>
+					<h2 id="modalTitle">Legal &amp; Trademark Disclaimers</h2>
+				</div>
+				<button type="button" class="modal-close" id="btnCloseDisclaimerModal" aria-label="Close modal">&times;</button>
+			</div>
+			<div class="modal-body">
+				<div class="legal-section">
+					<h3>1. Trademark &amp; Non-Affiliation Notice</h3>
+					<p><strong>Huawei</strong> and associated product names, model designations, and logos are registered trademarks of <strong>Huawei Technologies Co., Ltd.</strong> (and/or its respective subsidiaries and affiliates worldwide).</p>
+					<p>This utility is an independent community open-source project. It is <strong>not affiliated with, endorsed by, sponsored by, authorized by, or in any way officially connected to Huawei Technologies Co., Ltd.</strong> Any brand or model references are used strictly for compatibility and identification purposes under nominative fair use.</p>
+				</div>
+				<div class="legal-section">
+					<h3>2. Lawful &amp; Authorized Use Only</h3>
+					<p>This software is developed strictly for lawful personal configuration recovery, network diagnostics, security research, and educational purposes on equipment you legally own or are explicitly authorized to manage.</p>
+				</div>
+				<div class="legal-section">
+					<h3>3. Strict Non-Condonation of Illegal Activities &amp; ISP Violations</h3>
+					<p>The authors and contributors strictly do <strong>not condone, promote, or encourage any illegal activity</strong>, unauthorized network access, cracking, tampering with leased hardware, or actions that violate your Internet Service Provider&rsquo;s (ISP) Terms of Service (ToS) or Acceptable Use Policies (AUP). Users assume 100% responsibility for complying with applicable laws and contracts.</p>
+				</div>
+				<div class="legal-section">
+					<h3>4. Disclaimer of Warranties &amp; Limitation of Liability (&ldquo;AS IS&rdquo;)</h3>
+					<p>THE SOFTWARE IS PROVIDED &ldquo;AS IS&rdquo; WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. IN NO EVENT SHALL THE AUTHORS, MAINTAINERS, OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, BRICKED ROUTERS, DATA LOSS, ISP FINES, OR LEGAL LIABILITIES ARISING FROM THE USE OR MISUSE OF THIS SOFTWARE.</p>
+				</div>
+				<div class="legal-section">
+					<h3>5. 100% Client-Side Privacy Guarantee</h3>
+					<p>All decryption and hash computations execute locally inside your web browser. No configuration files, credentials, or network data are ever transmitted to any remote server.</p>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary" id="btnAcknowledgeDisclaimer">I Understand &amp; Agree</button>
+			</div>
+		</div>
+	</div>
 
 	<!-- Toast Notification Container -->
 	<div id="toastNotification" class="toast"></div>
