@@ -115,6 +115,54 @@ function decryptHuaweiString(inputStr, keyHex = PASSWORD_HEX) {
 // -------------------------------------------------------------
 // XML Parsing & Credential Extraction
 // -------------------------------------------------------------
+function isDummyPlaceholderPassword(plainValue, fieldName = "") {
+	if (!plainValue) return true;
+	const trimmed = String(plainValue).trim();
+	if (trimmed.length === 0) return true;
+	
+	// Single repeated character of length >= 4 (e.g. aaaaaaaaaaaaa, bbbbbbbbbbbbb, 00000000, 11111111)
+	if (/^(.)\1{3,}$/i.test(trimmed)) {
+		return true;
+	}
+	// Common placeholder sequences in router firmware
+	const placeholders = ["1234567890123", "abcdefghijklm", "0123456789012", "1234567890", "00000000", "11111111", "adminadmin", "passwordpassword"];
+	if (placeholders.includes(trimmed.toLowerCase())) {
+		return true;
+	}
+	// WEP default filler slots
+	if (fieldName.toLowerCase().includes("wep") && trimmed.length >= 5 && /^([a-z0-9])\1+$/i.test(trimmed)) {
+		return true;
+	}
+	return false;
+}
+
+function togglePasswordVisibility(elementId, btn) {
+	const elem = document.getElementById(elementId);
+	if (!elem) return;
+	const isMasked = elem.getAttribute("data-masked") === "true";
+	const plain = elem.getAttribute("data-plain") || "";
+
+	if (isMasked) {
+		elem.textContent = plain;
+		elem.setAttribute("data-masked", "false");
+		elem.classList.remove("masked");
+		if (btn) {
+			btn.classList.add("active");
+			btn.title = "Hide password";
+			btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+		}
+	} else {
+		elem.textContent = "••••••••••••";
+		elem.setAttribute("data-masked", "true");
+		elem.classList.add("masked");
+		if (btn) {
+			btn.classList.remove("active");
+			btn.title = "Show password";
+			btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+		}
+	}
+}
+
 function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml", saveToHistory = true) {
 	currentXmlText = xmlString;
 	currentFileName = fileName;
@@ -245,41 +293,47 @@ function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml", saveToHistory 
 				}
 			});
 
-			// WEP Keys
+			// WEP Keys (Omit dummy repeated placeholders like aaaaaaaaaaaaa, bbbbbbbbbbbbb)
 			const wepNodes = wlan.querySelectorAll("WEPKeyInstance");
 			wepNodes.forEach(wep => {
 				const cVal = wep.getAttribute("WEPKey");
 				const instId = wep.getAttribute("InstanceID") || "";
 				if (cVal && cVal.startsWith("$2")) {
-					seenCiphertexts.add(cVal);
-					decryptedItems.push({
-						id: ++itemId,
-						category: "WIFI",
-						categoryLabel: "Wi-Fi Network",
-						title: `SSID: "${ssid}" (WEP Key #${instId})`,
-						field: `WEPKey #${instId}`,
-						plainValue: decryptHuaweiString(cVal),
-						cipherValue: cVal,
-						isWifi: true,
-						meta: { ssid, name, band }
-					});
+					const decrypted = decryptHuaweiString(cVal);
+					if (decrypted && !isDummyPlaceholderPassword(decrypted, "WEPKey")) {
+						seenCiphertexts.add(cVal);
+						decryptedItems.push({
+							id: ++itemId,
+							category: "WIFI",
+							categoryLabel: "Wi-Fi Network",
+							title: `SSID: "${ssid}" (WEP Key #${instId})`,
+							field: `WEPKey #${instId}`,
+							plainValue: decrypted,
+							cipherValue: cVal,
+							isWifi: true,
+							meta: { ssid, name, band }
+						});
+					}
 				}
 			});
 
 			// Radius Secret
 			const radKey = wlan.getAttribute("X_HW_RadiusKey");
 			if (radKey && radKey.startsWith("$2")) {
-				seenCiphertexts.add(radKey);
-				decryptedItems.push({
-					id: ++itemId,
-					category: "WIFI",
-					categoryLabel: "Wi-Fi Network",
-					title: `SSID: "${ssid}"`,
-					field: "X_HW_RadiusKey",
-					plainValue: decryptHuaweiString(radKey),
-					cipherValue: radKey,
-					meta: { ssid, name, band }
-				});
+				const decrypted = decryptHuaweiString(radKey);
+				if (decrypted && !isDummyPlaceholderPassword(decrypted, "X_HW_RadiusKey")) {
+					seenCiphertexts.add(radKey);
+					decryptedItems.push({
+						id: ++itemId,
+						category: "WIFI",
+						categoryLabel: "Wi-Fi Network",
+						title: `SSID: "${ssid}"`,
+						field: "X_HW_RadiusKey",
+						plainValue: decrypted,
+						cipherValue: radKey,
+						meta: { ssid, name, band }
+					});
+				}
 			}
 		});
 
@@ -398,7 +452,7 @@ function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml", saveToHistory 
 		if (!seenCiphertexts.has(cipherVal)) {
 			seenCiphertexts.add(cipherVal);
 			const decrypted = decryptHuaweiString(cipherVal);
-			if (decrypted) {
+			if (decrypted && !isDummyPlaceholderPassword(decrypted, attrName)) {
 				let cat = "SYSTEM";
 				if (tagName.toLowerCase().includes("user")) cat = "WEB";
 				else if (tagName.toLowerCase().includes("wlan") || tagName.toLowerCase().includes("wifi")) cat = "WIFI";
@@ -412,6 +466,7 @@ function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml", saveToHistory 
 					field: attrName,
 					plainValue: decrypted,
 					cipherValue: cipherVal,
+					isWifi: cat === "WIFI",
 					meta: { tag: tagName, attr: attrName }
 				});
 			}
@@ -420,6 +475,9 @@ function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml", saveToHistory 
 
 	// Update UI
 	renderDecryptionResults();
+
+	// Keep view anchored at the top
+	ensureTopViewport();
 
 	// Save to Local Storage History (if enabled)
 	if (saveToHistory) {
@@ -470,10 +528,10 @@ function renderHighlightCards() {
 	webUsersContainer.innerHTML = "";
 	const webItems = decryptedItems.filter(i => i.category === "WEB");
 
-	// Group by username
+	// Group by username (merging IteratePassword into the same user tile)
 	const userGroups = {};
 	webItems.forEach(item => {
-		const uName = (item.meta && item.meta.userName) || item.title;
+		let uName = ((item.meta && item.meta.userName) || item.title || "User").replace(/\s*\(IteratePassword\)/i, "").trim();
 		if (!userGroups[uName]) userGroups[uName] = [];
 		userGroups[uName].push(item);
 	});
@@ -550,12 +608,20 @@ function renderHighlightCards() {
 					</div>
 			`;
 			items.forEach(it => {
+				const isPsk = it.field.includes("PreSharedKey") || (it.isWifi && !it.field.includes("WPS"));
 				html += `
 					<div class="credential-row">
 						<span class="cred-label">${escapeHtml(it.field)}:</span>
 						<div class="cred-value-wrap">
-							<span class="cred-value wifi-pass" title="${escapeHtml(it.plainValue)}">${escapeHtml(it.plainValue)}</span>
-							<button type="button" class="btn-icon-copy" onclick="copyToClipboard('${escapeJsString(it.plainValue)}')" title="Copy to clipboard">
+							${isPsk ? `
+								<span class="cred-value wifi-pass masked" id="wifi_val_${it.id}" data-plain="${escapeHtml(it.plainValue)}" data-masked="true">••••••••••••</span>
+								<button type="button" class="btn-icon-unveil" onclick="togglePasswordVisibility('wifi_val_${it.id}', this)" title="Show / Hide password">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+								</button>
+							` : `
+								<span class="cred-value wifi-pass" title="${escapeHtml(it.plainValue)}">${escapeHtml(it.plainValue)}</span>
+							`}
+							<button type="button" class="btn-icon-copy" onclick="copyToClipboard('${escapeJsString(it.plainValue)}')" title="Copy password">
 								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
 							</button>
 						</div>
@@ -661,6 +727,7 @@ function renderTableRows() {
 		else if (it.category === "SYSTEM") badgeClass = "badge-warning";
 		else if (it.category === "TOKEN") badgeClass = "badge-purple";
 
+		const isWifiPsk = it.isWifi && it.field.includes("PreSharedKey");
 		const rowHtml = `
 			<tr>
 				<td>
@@ -672,21 +739,26 @@ function renderTableRows() {
 				</td>
 				<td>
 					<div class="code-cell">
-						<span class="code-cell-text ${it.isFactory ? 'factory-pass' : (it.isWifi ? 'wifi-pass' : (it.isHash ? 'hash-val' : ''))}" title="${escapeHtml(it.plainValue)}">
-							${escapeHtml(it.plainValue)}
-						</span>
-						<button type="button" class="btn-icon-copy" onclick="copyToClipboard('${escapeJsString(it.plainValue)}')" title="Copy plaintext">
-							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-						</button>
+						${isWifiPsk ? `
+							<span class="code-cell-text wifi-pass masked" id="tbl_val_${it.id}" data-plain="${escapeHtml(it.plainValue)}" data-masked="true">
+								••••••••••••
+							</span>
+						` : `
+							<span class="code-cell-text ${it.isFactory ? 'factory-pass' : (it.isWifi ? 'wifi-pass' : (it.isHash ? 'hash-val' : ''))}" title="${escapeHtml(it.plainValue)}">
+								${escapeHtml(it.plainValue)}
+							</span>
+						`}
+						<div class="code-cell-actions">
+							${isWifiPsk ? `
+								<button type="button" class="btn-icon-unveil" onclick="togglePasswordVisibility('tbl_val_${it.id}', this)" title="Show / Hide password">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+								</button>
+							` : ''}
+							<button type="button" class="btn-icon-copy" onclick="copyToClipboard('${escapeJsString(it.plainValue)}')" title="Copy plaintext">
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+							</button>
+						</div>
 					</div>
-				</td>
-				<td>
-					<span class="cipher-cell" title="${escapeHtml(it.cipherValue)}">${escapeHtml(it.cipherValue)}</span>
-				</td>
-				<td>
-					<button type="button" class="btn btn-sm btn-outline" onclick="copyToClipboard('${escapeJsString(it.plainValue)}')" title="Copy password">
-						Copy
-					</button>
 				</td>
 			</tr>
 		`;
@@ -829,6 +901,26 @@ function escapeJsString(str) {
 		.replace(/"/g, '\\"')
 		.replace(/\n/g, "\\n")
 		.replace(/\r/g, "\\r");
+}
+
+// Prevent browser from auto-scrolling to bottom on dynamic content injection
+if ('scrollRestoration' in history) {
+	history.scrollRestoration = 'manual';
+}
+
+function ensureTopViewport() {
+	try {
+		if (document.activeElement && document.activeElement.blur && document.activeElement !== document.body) {
+			document.activeElement.blur();
+		}
+	} catch (_) {}
+	window.scrollTo(0, 0);
+	requestAnimationFrame(() => {
+		window.scrollTo(0, 0);
+		setTimeout(() => {
+			window.scrollTo(0, 0);
+		}, 50);
+	});
 }
 
 // -------------------------------------------------------------
