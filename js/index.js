@@ -1078,24 +1078,73 @@ function renderRecentConfigsUI() {
 	const list = document.getElementById("savedConfigsList");
 	const countElem = document.getElementById("savedConfigsCount");
 	const chkRemember = document.getElementById("chkRememberConfigs");
+	const quickSwitcher = document.getElementById("configQuickSwitcher");
+	const btnClearToolbar = document.getElementById("btnClearHistoryToolbar");
+	const resultsContainer = document.getElementById("resultsContainer");
 
 	if (chkRemember) {
 		chkRemember.checked = isRememberConfigsEnabled();
 	}
 
-	if (!section || !list) return;
-
 	const configs = getSavedConfigs();
 	if (countElem) countElem.textContent = configs.length;
+	const activeId = localStorage.getItem(STORAGE_LAST_ACTIVE_KEY);
 
-	if (configs.length === 0) {
-		section.style.display = "none";
-		list.innerHTML = "";
+	// Update Unified Toolbar Controls
+	if (btnClearToolbar) {
+		btnClearToolbar.style.display = configs.length > 0 ? "inline-flex" : "none";
+	}
+
+	const tabsList = document.getElementById("configTabsList");
+	const activeFileBadge = document.getElementById("activeFileSummaryBadge");
+
+	if (tabsList) {
+		if (configs.length > 1) {
+			tabsList.style.display = "flex";
+			if (activeFileBadge) activeFileBadge.style.display = "none";
+			tabsList.innerHTML = configs.map(cfg => {
+				const isActive = cfg.id === activeId || (cfg.fileName === currentFileName && currentXmlText === cfg.xmlContent);
+				return `
+					<button type="button" class="config-tab-btn ${isActive ? 'active' : ''}" data-id="${cfg.id}" title="${isActive ? 'Currently loaded configuration (' + cfg.fileSize + ')' : 'Click to switch to ' + escapeHtml(cfg.fileName) + ' (' + cfg.fileSize + ')'}">
+						<span class="status-indicator" style="${isActive ? '' : 'background: #64748b; box-shadow: none;'}"></span>
+						<span>${escapeHtml(cfg.fileName)}</span>
+						<span class="config-tab-delete" data-id="${cfg.id}" title="Remove this configuration from browser storage">&times;</span>
+					</button>
+				`;
+			}).join("");
+
+			tabsList.querySelectorAll(".config-tab-btn").forEach(tab => {
+				tab.addEventListener("click", (e) => {
+					if (e.target.classList.contains("config-tab-delete")) {
+						e.stopPropagation();
+						const id = e.target.getAttribute("data-id");
+						if (id) deleteSavedConfig(id);
+					} else {
+						const id = tab.getAttribute("data-id");
+						if (id && !tab.classList.contains("active")) {
+							loadConfigById(id);
+						}
+					}
+				});
+			});
+		} else {
+			tabsList.style.display = "none";
+			tabsList.innerHTML = "";
+			if (activeFileBadge) activeFileBadge.style.display = "flex";
+		}
+	}
+
+	// When results are active, hide the duplicate standalone box to save vertical space
+	const isResultsActive = resultsContainer && resultsContainer.style.display !== "none" && decryptedItems.length > 0;
+	if (isResultsActive || configs.length === 0) {
+		if (section) section.style.display = "none";
+		if (list) list.innerHTML = "";
 		return;
 	}
 
+	if (!section || !list) return;
+
 	section.style.display = "block";
-	const activeId = localStorage.getItem(STORAGE_LAST_ACTIVE_KEY);
 
 	list.innerHTML = configs.map(cfg => {
 		const isActive = cfg.id === activeId || (cfg.fileName === currentFileName && currentXmlText === cfg.xmlContent);
@@ -1195,7 +1244,6 @@ function setupFileHandlers() {
 		});
 	}
 
-
 	if (btnTogglePaste && pasteBox) {
 		btnTogglePaste.addEventListener("click", (e) => {
 			e.stopPropagation();
@@ -1227,14 +1275,23 @@ function setupFileHandlers() {
 	if (btnOpenNewConfig) {
 		btnOpenNewConfig.addEventListener("click", () => {
 			const dropZone = document.getElementById("dropZone");
+			const section = document.getElementById("recentConfigsSection");
 			if (dropZone) {
 				const isHidden = dropZone.style.display === "none";
 				dropZone.style.display = isHidden ? "block" : "none";
+				if (section && getSavedConfigs().length > 0) {
+					section.style.display = isHidden ? "block" : "none";
+				}
 				if (isHidden) {
 					dropZone.scrollIntoView({ behavior: "smooth", block: "start" });
 				}
 			}
 		});
+	}
+
+	const btnClearToolbar = document.getElementById("btnClearHistoryToolbar");
+	if (btnClearToolbar) {
+		btnClearToolbar.addEventListener("click", clearAllSavedConfigs);
 	}
 
 	const btnCopyAll = document.getElementById("btnCopyAll");

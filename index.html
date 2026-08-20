@@ -130,12 +130,16 @@
 
 			<!-- Results Container -->
 			<div id="resultsContainer" style="display: none;">
-				<!-- File Info & Actions Bar -->
+				<!-- Unified Configuration Toolbar -->
 				<div class="results-toolbar">
 					<div class="file-summary">
-						<div class="file-summary-badge">
+						<div class="file-summary-badge" id="activeFileSummaryBadge">
 							<span class="status-indicator"></span>
 							<span id="summaryFileName">hw_ctree.xml</span>
+						</div>
+						<!-- Quick Switcher Tabs for all saved configs -->
+						<div class="config-tabs-list" id="configTabsList" style="display: none;">
+							<!-- Populated dynamically when multiple configs exist in storage -->
 						</div>
 						<div class="file-summary-meta">
 							<span id="summaryFileSize">202 KB</span> &bull; 
@@ -144,7 +148,7 @@
 						</div>
 					</div>
 					<div class="export-actions">
-						<button type="button" class="btn btn-sm btn-outline" id="btnOpenNewConfig" title="Upload or open a different configuration file">
+						<button type="button" class="btn btn-sm btn-outline" id="btnOpenNewConfig" title="Upload a new file or manage saved configurations">
 							<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
 							Open Another File
 						</button>
@@ -159,6 +163,10 @@
 						<button type="button" class="btn btn-sm btn-primary" id="btnDownloadDecryptedXml">
 							<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
 							Download Decrypted XML
+						</button>
+						<button type="button" class="btn btn-sm btn-outline-danger" id="btnClearHistoryToolbar" title="Clear all saved configurations from browser storage" style="display: none;">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+							Clear History
 						</button>
 					</div>
 				</div>
