@@ -218,7 +218,7 @@ function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml", saveToHistory 
 					category: "WEB",
 					categoryLabel: "Web User",
 					title: userName,
-					field: "Current Password (Hash/Plain)",
+					field: "Current Password",
 					plainValue: decrypted,
 					cipherValue: pass,
 					isFeatured: isAdminUser,
@@ -570,12 +570,22 @@ function renderHighlightCards() {
 
 			items.forEach(it => {
 				const isFactory = it.field.includes("Factory");
-				const valueClass = isFactory ? "factory-pass" : (it.isHash ? "hash-val" : "");
+				const isHashVal = it.isHash || (it.plainValue && it.plainValue.length >= 24 && /^[a-fA-F0-9]+$/.test(it.plainValue));
+				const valueClass = isFactory ? "factory-pass" : (isHashVal ? "hash-val" : "");
+				const shouldMask = !isHashVal;
+
 				html += `
 					<div class="credential-row">
 						<span class="cred-label">${escapeHtml(it.field)}:</span>
 						<div class="cred-value-wrap">
-							<span class="cred-value ${valueClass}" title="${escapeHtml(it.plainValue)}">${escapeHtml(it.plainValue)}</span>
+							${shouldMask ? `
+								<span class="cred-value ${valueClass} masked" id="card_val_${it.id}" data-plain="${escapeHtml(it.plainValue)}" data-masked="true">••••••••••••</span>
+								<button type="button" class="btn-icon-unveil" onclick="togglePasswordVisibility('card_val_${it.id}', this)" title="Show / Hide password">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+								</button>
+							` : `
+								<span class="cred-value ${valueClass}" title="${escapeHtml(it.plainValue)}">${escapeHtml(it.plainValue)}</span>
+							`}
 							<button type="button" class="btn-icon-copy" onclick="copyToClipboard('${escapeJsString(it.plainValue)}')" title="Copy to clipboard">
 								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
 							</button>
@@ -614,12 +624,13 @@ function renderHighlightCards() {
 					</div>
 			`;
 			items.forEach(it => {
-				const isPsk = it.field.includes("PreSharedKey") || (it.isWifi && !it.field.includes("WPS"));
+				const isHashVal = it.isHash || (it.plainValue && it.plainValue.length >= 24 && /^[a-fA-F0-9]+$/.test(it.plainValue));
+				const shouldMask = !isHashVal;
 				html += `
 					<div class="credential-row">
 						<span class="cred-label">${escapeHtml(it.field)}:</span>
 						<div class="cred-value-wrap">
-							${isPsk ? `
+							${shouldMask ? `
 								<span class="cred-value wifi-pass masked" id="wifi_val_${it.id}" data-plain="${escapeHtml(it.plainValue)}" data-masked="true">••••••••••••</span>
 								<button type="button" class="btn-icon-unveil" onclick="togglePasswordVisibility('wifi_val_${it.id}', this)" title="Show / Hide password">
 									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
@@ -636,63 +647,6 @@ function renderHighlightCards() {
 			});
 			html += `</div>`;
 			wifiContainer.insertAdjacentHTML("beforeend", html);
-		});
-	}
-
-	// 3. CLI Accounts Highlight
-	const cliContainer = document.getElementById("highlightCli");
-	cliContainer.innerHTML = "";
-	const cliItems = decryptedItems.filter(i => i.category === "CLI");
-	if (cliItems.length === 0) {
-		cliContainer.innerHTML = '<p class="cred-label">No CLI user credentials found.</p>';
-	} else {
-		cliItems.forEach(it => {
-			const html = `
-				<div class="user-highlight-item">
-					<div class="user-item-title">
-						<span class="username-tag">${escapeHtml(it.title)}</span>
-						<span class="account-role">${escapeHtml(it.meta?.access || "CLI")}</span>
-					</div>
-					<div class="credential-row">
-						<span class="cred-label">${escapeHtml(it.field)}:</span>
-						<div class="cred-value-wrap">
-							<span class="cred-value ${it.isHash ? 'hash-val' : ''}" title="${escapeHtml(it.plainValue)}">${escapeHtml(it.plainValue)}</span>
-							<button type="button" class="btn-icon-copy" onclick="copyToClipboard('${escapeJsString(it.plainValue)}')" title="Copy to clipboard">
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-							</button>
-						</div>
-					</div>
-				</div>
-			`;
-			cliContainer.insertAdjacentHTML("beforeend", html);
-		});
-	}
-
-	// 4. System & CWMP Highlight
-	const sysContainer = document.getElementById("highlightSystem");
-	sysContainer.innerHTML = "";
-	const sysItems = decryptedItems.filter(i => i.category === "SYSTEM");
-	if (sysItems.length === 0) {
-		sysContainer.innerHTML = '<p class="cred-label">No system or SSL credentials found.</p>';
-	} else {
-		sysItems.slice(0, 4).forEach(it => {
-			const html = `
-				<div class="user-highlight-item">
-					<div class="user-item-title">
-						<span class="username-tag">${escapeHtml(it.title)}</span>
-					</div>
-					<div class="credential-row">
-						<span class="cred-label">${escapeHtml(it.field)}:</span>
-						<div class="cred-value-wrap">
-							<span class="cred-value ${it.isHash ? 'hash-val' : ''}" title="${escapeHtml(it.plainValue)}">${escapeHtml(it.plainValue)}</span>
-							<button type="button" class="btn-icon-copy" onclick="copyToClipboard('${escapeJsString(it.plainValue)}')" title="Copy to clipboard">
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-							</button>
-						</div>
-					</div>
-				</div>
-			`;
-			sysContainer.insertAdjacentHTML("beforeend", html);
 		});
 	}
 }
@@ -733,7 +687,9 @@ function renderTableRows() {
 		else if (it.category === "SYSTEM") badgeClass = "badge-warning";
 		else if (it.category === "TOKEN") badgeClass = "badge-purple";
 
-		const isWifiPsk = it.isWifi && it.field.includes("PreSharedKey");
+		const isHashVal = it.isHash || (it.plainValue && it.plainValue.length >= 24 && /^[a-fA-F0-9]+$/.test(it.plainValue));
+		const shouldMask = !isHashVal;
+
 		const rowHtml = `
 			<tr>
 				<td>
@@ -745,17 +701,17 @@ function renderTableRows() {
 				</td>
 				<td>
 					<div class="code-cell">
-						${isWifiPsk ? `
-							<span class="code-cell-text wifi-pass masked" id="tbl_val_${it.id}" data-plain="${escapeHtml(it.plainValue)}" data-masked="true">
+						${shouldMask ? `
+							<span class="code-cell-text ${it.isFactory ? 'factory-pass' : (it.isWifi ? 'wifi-pass' : '')} masked" id="tbl_val_${it.id}" data-plain="${escapeHtml(it.plainValue)}" data-masked="true">
 								••••••••••••
 							</span>
 						` : `
-							<span class="code-cell-text ${it.isFactory ? 'factory-pass' : (it.isWifi ? 'wifi-pass' : (it.isHash ? 'hash-val' : ''))}" title="${escapeHtml(it.plainValue)}">
+							<span class="code-cell-text ${it.isHash ? 'hash-val' : ''}" title="${escapeHtml(it.plainValue)}">
 								${escapeHtml(it.plainValue)}
 							</span>
 						`}
 						<div class="code-cell-actions">
-							${isWifiPsk ? `
+							${shouldMask ? `
 								<button type="button" class="btn-icon-unveil" onclick="togglePasswordVisibility('tbl_val_${it.id}', this)" title="Show / Hide password">
 									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
 								</button>
@@ -1134,9 +1090,15 @@ function renderRecentConfigsUI() {
 		}
 	}
 
-	// When results are active, hide the duplicate standalone box to save vertical space
+	// When results are active, hide the duplicate standalone box & dropzone to save vertical space
+	const dropZone = document.getElementById("dropZone");
+	const pasteBox = document.getElementById("pasteBox");
 	const isResultsActive = resultsContainer && resultsContainer.style.display !== "none" && decryptedItems.length > 0;
 	if (isResultsActive || configs.length === 0) {
+		if (isResultsActive) {
+			if (dropZone) dropZone.style.display = "none";
+			if (pasteBox) pasteBox.style.display = "none";
+		}
 		if (section) section.style.display = "none";
 		if (list) list.innerHTML = "";
 		return;

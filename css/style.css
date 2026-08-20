@@ -456,13 +456,19 @@ h1 {
 	flex-wrap: wrap;
 }
 
-/* Highlights Grid - Balanced 2x2 Layout on Desktop */
+/* Highlights Grid - 2 Main Columns (Web/Admin & Wi-Fi) */
 .highlights-grid {
 	display: grid;
 	grid-template-columns: repeat(2, 1fr);
-	gap: 12px;
+	gap: 14px;
 	margin-bottom: 1.2rem;
 	align-items: stretch;
+}
+
+@media (max-width: 960px) {
+	.highlights-grid {
+		grid-template-columns: 1fr;
+	}
 }
 
 .highlight-card {
@@ -508,22 +514,20 @@ h1 {
 }
 
 .highlight-card-body {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	display: flex;
+	flex-direction: column;
 	gap: 8px;
 	flex-grow: 1;
-	align-content: start;
 }
 
-/* Compact Highlight Tiles */
+/* Full-width Highlight Items with Ample Horizontal Room */
 .user-highlight-item {
 	background: rgba(15, 16, 22, 0.6);
 	border: 1px solid rgba(255, 255, 255, 0.05);
 	border-radius: var(--radius-sm);
-	padding: 8px 10px;
+	padding: 8px 12px;
 	display: flex;
 	flex-direction: column;
-	justify-content: space-between;
 	gap: 4px;
 	transition: all 0.2s ease;
 }
@@ -569,7 +573,7 @@ h1 {
 	align-items: center;
 	justify-content: space-between;
 	margin-top: 3px;
-	gap: 6px;
+	gap: 8px;
 }
 
 .cred-label {
@@ -578,8 +582,11 @@ h1 {
 	text-transform: uppercase;
 	font-weight: 600;
 	letter-spacing: 0.03em;
-	min-width: 65px;
-	flex-shrink: 0;
+	flex: 1 1 auto;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .cred-value-wrap {
@@ -587,10 +594,12 @@ h1 {
 	align-items: center;
 	gap: 4px;
 	background: var(--bg-input);
-	padding: 2px 6px;
+	padding: 3px 8px;
 	border-radius: 4px;
 	border: 1px solid var(--border-color);
-	flex-grow: 1;
+	flex: 0 0 68%;
+	max-width: 440px;
+	margin-left: auto;
 	overflow: hidden;
 	min-width: 0;
 }
@@ -600,10 +609,19 @@ h1 {
 	font-size: 0.8rem;
 	color: #ffffff;
 	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
 	user-select: all;
 	flex-grow: 1;
+	min-width: 0;
+}
+
+.cred-value::-webkit-scrollbar {
+	display: none;
+	width: 0;
+	height: 0;
 }
 
 .cred-value.factory-pass {
@@ -713,6 +731,8 @@ h1 {
 .search-box {
 	position: relative;
 	width: 100%;
+	display: flex;
+	align-items: center;
 }
 
 .search-icon {
@@ -722,9 +742,13 @@ h1 {
 	transform: translateY(-50%);
 	color: var(--text-muted);
 	pointer-events: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .search-input {
+	margin-bottom: 0 !important;
 	padding-left: 38px !important;
 	padding-right: 36px !important;
 	height: 42px !important;
@@ -741,6 +765,10 @@ h1 {
 	color: var(--text-muted);
 	font-size: 1.2rem;
 	cursor: pointer;
+	line-height: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .btn-clear:hover {
@@ -838,15 +866,25 @@ h1 {
 	padding: 4px 8px;
 	border-radius: 4px;
 	border: 1px solid rgba(255, 255, 255, 0.05);
-	max-width: 520px;
+	width: 100%;
+	min-width: 0;
 }
 
 .code-cell-text {
-	overflow: hidden;
-	text-overflow: ellipsis;
+	overflow-x: auto;
+	overflow-y: hidden;
 	white-space: nowrap;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
 	flex-grow: 1;
 	min-width: 0;
+	user-select: all;
+}
+
+.code-cell-text::-webkit-scrollbar {
+	display: none;
+	width: 0;
+	height: 0;
 }
 
 .code-cell-actions {
