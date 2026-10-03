@@ -19,6 +19,7 @@
 	<script src="js/vendor/crypto-js.min.js"></script>
 	<script src="js/vendor/enc-hex.min.js"></script>
 	<script src="js/vendor/he.min.js"></script>
+	<script src="js/random.js"></script>
 </head>
 
 <body>
@@ -261,7 +262,7 @@
 						<strong>XML Config Decryptor</strong>: Upload backup configurations (<code>hw_ctree.xml</code>) to decrypt all hidden credentials, including factory passwords (e.g. <code>admin</code>), Wi-Fi PSK keys, and CLI user passwords.
 					</div>
 					<div class="feature-item">
-						<strong>Password Generator</strong>: Compute hashes matching Huawei router firmware modes (MD5, SHA256-MD5, PBKDF2-SHA256 with 5000 iterations).
+						<strong>Password Generator</strong>: Compute hashes matching Huawei router firmware modes (MD5, SHA256-MD5, and PBKDF2-HMAC-SHA256 with configurable iterations).
 					</div>
 					<div class="feature-item">
 						<strong>Cipher / Decipher</strong>: Manually cipher or decipher individual strings formatted with Huawei's custom base-93/AES-CBC encoding (<code>$2...$</code>).
@@ -326,7 +327,7 @@
 					<select id="EncryptionMode" name="hashing" class="user-input" onchange="EncryptionModeChange()">
 						<option value="1">1. MD5(password)</option>
 						<option value="2">2. Sha256(MD5(password))</option>
-						<option value="3">3. PBKDF2(password, 256 key size, 5000 iterations, Sha256, salt)</option>
+						<option value="3">3. PBKDF2-HMAC-SHA256(password, salt, iterations)</option>
 					</select>
 				</div>
 				<div class="input-description">
@@ -340,6 +341,11 @@
 							<input type="checkbox" id="SaltRandomizeField" onclick="OnRandomizeFieldChange()" checked>
 						</div>
 					</div>
+				</div>
+				<div class="input-description" id="IterationCountContainer">
+					Iteration count:
+					<input id="IterationCountField" class="user-input" type="number" min="1" step="1" value="5000" aria-describedby="IterationCountHelp" oninput="OnPasswordChange()">
+					<div class="input-help" id="IterationCountHelp">Use 5000 for the parent PassMode 3 verifier, or the value from X_HW_IteratePassword.IterateCount (often 10000).</div>
 				</div>
 				<div class="input-description">
 					Result:

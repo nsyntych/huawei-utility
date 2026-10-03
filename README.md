@@ -14,12 +14,22 @@ A browser-based client-side utility suite for Huawei routers and CPE devices. Al
   - "Download Decrypted XML" feature to export a clean, fully-decrypted XML configuration file.
   - "Export JSON" for structured credential backup.
 - **Password Generator**:
-  - Hashes passwords using Huawei router firmware modes (MD5, SHA256-MD5, PBKDF2-SHA256 with 5000 iterations).
+  - Hashes passwords using Huawei router firmware modes (MD5, SHA256-MD5, and PBKDF2-HMAC-SHA256).
+  - Supports configurable PBKDF2 iteration counts for both the 5,000-round `PassMode=3` parent verifier and nested `X_HW_IteratePassword` records.
+  - Generates 24-character salts and encryption IVs with the browser Web Crypto API.
 - **Progressive Web App (PWA) & 100% Offline Capability**:
   - Installable as a standalone native-like app on Desktop (Chrome, Edge) and Mobile (iOS, Android).
   - All cryptographic modules (`crypto-js`, `he`) and assets are bundled locally with a Service Worker cache—works completely offline with zero internet connectivity and zero external tracking.
 - **Cipher / Decipher**:
   - Direct encryption and decryption of Huawei `$2...$` strings with automatic XML entity unescaping.
+
+## Tests
+
+Run the dependency-free password-generator regression tests with Node.js:
+
+```sh
+node tests/password-generator.test.cjs
+```
 
 ## ⚖️ Legal & Trademark Disclaimers
 

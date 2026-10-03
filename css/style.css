@@ -576,6 +576,22 @@ h1 {
 	gap: 8px;
 }
 
+.credential-meta {
+	display: flex;
+	align-items: baseline;
+	justify-content: flex-end;
+	gap: 6px;
+	margin-top: 2px;
+	color: var(--text-muted);
+	font-size: 0.66rem;
+}
+
+.credential-meta code {
+	color: var(--text-secondary);
+	font-family: var(--font-mono);
+	user-select: all;
+}
+
 .cred-label {
 	font-size: 0.68rem;
 	color: var(--text-muted);
@@ -944,6 +960,13 @@ h1 {
 	display: block;
 	font-size: 0.9rem;
 	font-weight: 500;
+}
+
+.input-help {
+	margin: -0.65rem 0 1rem;
+	color: var(--text-muted);
+	font-size: 0.78rem;
+	font-weight: 400;
 }
 
 .user-input-checkbox {

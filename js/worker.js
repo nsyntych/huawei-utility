@@ -1,5 +1,5 @@
 const BLOCK_SIZE = 0X14;
-importScripts("constants.js", "vendor/crypto-js.min.js", "vendor/enc-hex.min.js");
+importScripts("constants.js", "vendor/crypto-js.min.js", "vendor/enc-hex.min.js", "random.js");
 
 Uint8Array.prototype.readUInt32LE = function(offset)
 {
@@ -240,8 +240,9 @@ function HW_AESCBC_Encrypt(data, key, IV)
  * @param {String} password the password to hash
  * @param {String} salt used with the password, only valid for mode = ENCRYPTION_MODE_PBKDF2
  * @param {Number} mode utilized to hash the password
+ * @param {Number} iterations PBKDF2 iteration count
  */
-function GeneratePassword(password, salt, mode)
+function GeneratePassword(password, salt, mode, iterations = DEFAULT_PBKDF2_ITERATIONS)
 {
 	switch(mode)
 	{
@@ -250,29 +251,15 @@ function GeneratePassword(password, salt, mode)
 		case ENCRYPTION_MODE_SHA2_MD5:
 			return CryptoJS.SHA256(CryptoJS.MD5(password).toString(CryptoJS.enc.Hex)).toString(CryptoJS.enc.Hex);
 		case ENCRYPTION_MODE_PBKDF2:
+			if (!Number.isSafeInteger(iterations) || iterations < 1)
+				throw new RangeError("PBKDF2 iterations must be a positive integer");
 			return CryptoJS.PBKDF2(password, salt, {
 				keySize: 256 / 32,
 				hasher: CryptoJS.algo.SHA256,
-				iterations: 5000
+				iterations
 			}).toString(CryptoJS.enc.Hex);
 	}
 	return "";
-}
-
-/**
- * 
- * @param {Number} size	the size of the array to generate
- * @returns {Uint8Array} array of random data 
- */
-function GetRandomByteArray(size)
-{
-	var randomBytes = new Uint8Array(size);
-	
-	for (let i = 0; i < randomBytes.length; i++) 
-	{
-		randomBytes[i] = (Math.random()*255) >> 0	
-	}
-	return randomBytes;// randomBytes.reduce((previous, currentValue) => {return previous + currentValue.toString(16)});
 }
 
 onmessage = function(e) 
@@ -286,7 +273,12 @@ onmessage = function(e)
 	switch(e.data.functionCall)
 	{
 		case GENERATE_PASSWORD:
-			returnedData.return = GeneratePassword(e.data.args.password, e.data.args.salt, e.data.args.mode);
+			returnedData.return = GeneratePassword(
+				e.data.args.password,
+				e.data.args.salt,
+				e.data.args.mode,
+				e.data.args.iterations
+			);
 			break;
 		case ENCRYPT_DATA:
 			returnedData.return = HW_AESCBC_Encrypt(e.data.args.password, PASSWORD_HEX, GetRandomByteArray(0x10));

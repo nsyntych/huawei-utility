@@ -67,7 +67,7 @@ const toHexString = bytes =>
  */
 function decryptHuaweiString(inputStr, keyHex = PASSWORD_HEX) {
 	if (!inputStr || typeof inputStr !== 'string') return "";
-	
+
 	// Unescape HTML / XML entities
 	let unescaped = inputStr;
 	if (typeof he !== 'undefined' && he.decode) {
@@ -190,6 +190,7 @@ function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml", saveToHistory 
 			const passMode = user.getAttribute("PassMode") || "";
 			const alias = user.getAttribute("Alias") || "";
 			const userLevel = user.getAttribute("UserLevel") || "";
+			const decodedSalt = salt.startsWith("$2") ? decryptHuaweiString(salt) : salt;
 
 			const isAdminUser = userName.toLowerCase().includes("admin");
 
@@ -206,24 +207,33 @@ function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml", saveToHistory 
 					cipherValue: factoryPass,
 					isFeatured: true,
 					isFactory: true,
-					meta: { userName, userLevel, passMode, salt, alias }
+					meta: { userName, userLevel, passMode, salt: decodedSalt, alias }
 				});
 			}
 
 			if (pass && pass.startsWith("$2")) {
 				seenCiphertexts.add(pass);
 				const decrypted = decryptHuaweiString(pass);
+				const isVerifier = passMode === "3" && /^[0-9a-f]{64}$/i.test(decrypted);
 				decryptedItems.push({
 					id: ++itemId,
 					category: "WEB",
 					categoryLabel: "Web User",
 					title: userName,
-					field: "Current Password",
+					field: isVerifier ? "Verifier (5,000 rounds)" : "Current Password",
 					plainValue: decrypted,
 					cipherValue: pass,
 					isFeatured: isAdminUser,
-					isHash: decrypted.length === 64,
-					meta: { userName, userLevel, passMode, salt, alias }
+					isHash: isVerifier || decrypted.length === 64,
+					meta: {
+						userName,
+						userLevel,
+						passMode,
+						salt: decodedSalt,
+						iterations: isVerifier ? DEFAULT_PBKDF2_ITERATIONS : null,
+						algorithm: isVerifier ? "PBKDF2-HMAC-SHA256" : null,
+						alias
+					}
 				});
 			}
 
@@ -231,17 +241,32 @@ function parseAndDecryptXml(xmlString, fileName = "hw_ctree.xml", saveToHistory 
 			const iterPass = user.querySelector("X_HW_IteratePassword");
 			if (iterPass && iterPass.getAttribute("Password") && iterPass.getAttribute("Password").startsWith("$2")) {
 				const cVal = iterPass.getAttribute("Password");
+				const iterSaltRaw = iterPass.getAttribute("Salt") || "";
+				const iterSalt = iterSaltRaw.startsWith("$2") ? decryptHuaweiString(iterSaltRaw) : iterSaltRaw;
+				const iterCountRaw = Number(iterPass.getAttribute("IterateCount"));
+				const iterCount = Number.isSafeInteger(iterCountRaw) && iterCountRaw > 0 ? iterCountRaw : null;
+				const hashType = iterPass.getAttribute("HashType") || "";
 				seenCiphertexts.add(cVal);
+				const decrypted = decryptHuaweiString(cVal);
 				decryptedItems.push({
 					id: ++itemId,
 					category: "WEB",
 					categoryLabel: "Web User",
-					title: `${userName} (IteratePassword)`,
-					field: "IteratePassword",
-					plainValue: decryptHuaweiString(cVal),
+					title: userName,
+					field: iterCount ? `Iterated verifier (${iterCount.toLocaleString("en-US")} rounds)` : "Iterated verifier",
+					plainValue: decrypted,
 					cipherValue: cVal,
-					isHash: true,
-					meta: { salt: iterPass.getAttribute("Salt"), count: iterPass.getAttribute("IterateCount") }
+					isHash: /^[0-9a-f]{64}$/i.test(decrypted),
+					meta: {
+						userName,
+						userLevel,
+						passMode,
+						salt: iterSalt,
+						iterations: iterCount,
+						hashType,
+						algorithm: hashType === "0" ? "PBKDF2-HMAC-SHA256" : `HashType ${hashType || "unknown"}`,
+						alias
+					}
 				});
 			}
 		});
@@ -593,6 +618,15 @@ function renderHighlightCards() {
 							</div>
 						</div>
 					`;
+
+					if (isHashVal && Number.isSafeInteger(it.meta?.iterations) && it.meta?.salt) {
+						html += `
+							<div class="credential-meta">
+								<span>${escapeHtml(it.meta.algorithm || "Password verifier")} · ${it.meta.iterations.toLocaleString("en-US")} rounds · salt</span>
+								<code>${escapeHtml(it.meta.salt)}</code>
+							</div>
+						`;
+					}
 				});
 
 				html += `</div>`;
@@ -1334,17 +1368,24 @@ function loadFile(file) {
 // Existing Password Generator & Cipher Worker Routines
 // -------------------------------------------------------------
 function GetRandomSalt() {
-	var randomBytes = new Uint8Array(12);
-	for (let i = 0; i < randomBytes.length; i++) {
-		randomBytes[i] = (Math.random() * 255) >> 0;
-	}
-	return randomBytes.reduce((previous, currentValue) => { return previous + currentValue.toString(16); }, "");
+	return GetRandomHex(12);
 }
 
-function GeneratePasswordOnWorker(password, salt, mode) {
+function GetPbkdf2Iterations() {
+	const field = document.getElementById("IterationCountField");
+	const iterations = Number(field?.value);
+	const valid = Number.isSafeInteger(iterations) && iterations > 0;
+	if (field) {
+		field.setCustomValidity(valid ? "" : "Iteration count must be a positive integer.");
+		field.setAttribute("aria-invalid", valid ? "false" : "true");
+	}
+	return valid ? iterations : null;
+}
+
+function GeneratePasswordOnWorker(password, salt, mode, iterations = DEFAULT_PBKDF2_ITERATIONS) {
 	myWorker.postMessage({
 		functionCall: GENERATE_PASSWORD,
-		args: { password, salt, mode }
+		args: { password, salt, mode, iterations }
 	});
 }
 
@@ -1366,13 +1407,14 @@ function OnPasswordChange() {
 	if (!sendToWorker) return;
 	let mode = document.getElementById("EncryptionMode").value * 1;
 	let saltField = document.getElementById("SaltField");
-	let randomize = document.getElementById("SaltRandomizeField").checked;
-	if (randomize === true && mode === ENCRYPTION_MODE_PBKDF2) {
-		saltField.value = GetRandomSalt();
-	}
 	let salt = saltField.value;
 	let password = document.getElementById("PasswordField").value;
-	GeneratePasswordOnWorker(password, salt, mode);
+	let iterations = mode === ENCRYPTION_MODE_PBKDF2 ? GetPbkdf2Iterations() : DEFAULT_PBKDF2_ITERATIONS;
+	if (iterations === null) {
+		document.getElementById("ResultField").value = "";
+		return;
+	}
+	GeneratePasswordOnWorker(password, salt, mode, iterations);
 }
 
 function OnRandomizeFieldChange() {
@@ -1383,6 +1425,7 @@ function OnRandomizeFieldChange() {
 	if (randomizeField.checked === true) {
 		salt.classList.add("no-input");
 		salt.disabled = true;
+		salt.value = GetRandomSalt();
 		OnPasswordChange();
 	} else {
 		salt.classList.remove("no-input");
@@ -1394,6 +1437,8 @@ function EncryptionModeChange() {
 	let mode = document.getElementById("EncryptionMode").value * 1;
 	let salt = document.getElementById("SaltField");
 	let randomizeField = document.getElementById("SaltRandomizeField");
+	let iterationContainer = document.getElementById("IterationCountContainer");
+	let iterationField = document.getElementById("IterationCountField");
 	switch (mode) {
 		case ENCRYPTION_MODE_MD5:
 		case ENCRYPTION_MODE_SHA2_MD5:
@@ -1402,6 +1447,8 @@ function EncryptionModeChange() {
 			salt.classList.add('disabled');
 			salt.classList.remove("no-input");
 			salt.value = "";
+			if (iterationContainer) iterationContainer.style.display = "none";
+			if (iterationField) iterationField.disabled = true;
 			break;
 		case ENCRYPTION_MODE_PBKDF2:
 			salt.disabled = false;
@@ -1413,9 +1460,16 @@ function EncryptionModeChange() {
 				if (salt.value === "")
 					salt.value = GetRandomSalt();
 			}
+			if (iterationContainer) iterationContainer.style.display = "block";
+			if (iterationField) iterationField.disabled = false;
 			break;
 	}
-	GeneratePasswordOnWorker(document.getElementById("PasswordField").value, salt.value, mode);
+	const iterations = mode === ENCRYPTION_MODE_PBKDF2 ? GetPbkdf2Iterations() : DEFAULT_PBKDF2_ITERATIONS;
+	if (iterations === null) {
+		document.getElementById("ResultField").value = "";
+		return;
+	}
+	GeneratePasswordOnWorker(document.getElementById("PasswordField").value, salt.value, mode, iterations);
 }
 
 function OnEncryptResultClick() {
@@ -1426,7 +1480,12 @@ function OnEncryptResultClick() {
 	if (encryptResultField.checked === true) {
 		EncryptPasswordOnWorker(resultField.value, "ResultField");
 	} else {
-		GeneratePasswordOnWorker(document.getElementById("PasswordField").value, salt.value, mode);
+		const iterations = mode === ENCRYPTION_MODE_PBKDF2 ? GetPbkdf2Iterations() : DEFAULT_PBKDF2_ITERATIONS;
+		if (iterations === null) {
+			resultField.value = "";
+			return;
+		}
+		GeneratePasswordOnWorker(document.getElementById("PasswordField").value, salt.value, mode, iterations);
 	}
 }
 
@@ -1545,7 +1604,8 @@ window.addEventListener('DOMContentLoaded', () => {
 	GeneratePasswordOnWorker(
 		document.getElementById("PasswordField")?.value || "",
 		document.getElementById("SaltField")?.value || "",
-		(document.getElementById("EncryptionMode")?.value || 1) * 1
+		(document.getElementById("EncryptionMode")?.value || 1) * 1,
+		GetPbkdf2Iterations() ?? DEFAULT_PBKDF2_ITERATIONS
 	);
 	OnCipherInputChange();
 	popStateEvent();

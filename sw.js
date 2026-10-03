@@ -1,7 +1,7 @@
 // Huawei Password & Configuration Utility - Service Worker
 // Enables 100% Offline Capability and PWA Installation
 
-const CACHE_NAME = 'hw-util-v1.0.2';
+const CACHE_NAME = 'hw-util-v1.0.3';
 
 const PRECACHE_ASSETS = [
 	'./',
@@ -14,6 +14,7 @@ const PRECACHE_ASSETS = [
 	'./icons/apple-touch-icon.png',
 	'./css/style.css',
 	'./js/constants.js',
+	'./js/random.js',
 	'./js/index.js',
 	'./js/worker.js',
 	'./js/vendor/crypto-js.min.js',
